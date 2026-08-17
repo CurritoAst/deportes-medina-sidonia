@@ -208,6 +208,26 @@ async function probarRele() {
   log('Prueba terminada. Si un relé no cerró, revisa pin/polaridad (MSD_RELE_ACTIVO_BAJO) y backend (MSD_GPIO).');
 }
 
+/* Buscador de pines: pulsa GPIO por GPIO para descubrir a qué pin está cableado
+   cada relé (útil con un HAT de pinout desconocido). Escucha el CLIC.
+   Uso:  node acceso/acceso.js --buscar-pines
+   Personaliza la lista con  MSD_PINES_BUSCAR=17,27,22,...  */
+async function buscarPines() {
+  const candidatos = process.env.MSD_PINES_BUSCAR
+    ? process.env.MSD_PINES_BUSCAR.split(',').map((n) => parseInt(n.trim(), 10)).filter(Number.isInteger)
+    : [4, 17, 27, 22, 5, 6, 13, 19, 26, 16, 20, 21, 12, 23, 24, 25, 18];
+  log(`Buscador de pines — backend '${rele.backend}', activo-${cfg.RELE.activoBajo ? 'bajo' : 'alto'}.`);
+  if (rele.backend === 'sim') log('Estás en SIMULADO: exporta MSD_GPIO=raspi-gpio (o pinctrl/sysfs) para oír los relés.');
+  log('Escucha el CLIC del relé: cuando suene, apunta el GPIO que se está anunciando.');
+  rele.inicializar(candidatos);
+  for (const pin of candidatos) {
+    log(`  → probando GPIO ${pin} …`);
+    await rele.pulso(pin, 700);
+    await sleep(1300);
+  }
+  log('Barrido terminado. Pon los GPIO que hicieron clic en MSD_PIN_ENTRADA y MSD_PIN_SALIDA (/etc/acceso-torno.env).');
+}
+
 /* ---------- Registro del acceso en la web ---------- */
 
 async function registrar(res) {
@@ -287,6 +307,8 @@ function conectarLector(lector) {
 async function principal() {
   // Prueba de cableado del relé y sale (no necesita web ni lectores).
   if (process.argv.includes('--test-rele')) { await probarRele(); return; }
+  // Buscador de pines: barre GPIOs para descubrir a cuál está cableado cada relé.
+  if (process.argv.includes('--buscar-pines')) { await buscarPines(); return; }
 
   log('Servicio de acceso del torno — arrancando.');
   const P = cfg.RELE.pines;
