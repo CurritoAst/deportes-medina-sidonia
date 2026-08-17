@@ -1,0 +1,25 @@
+[Unit]
+Description=Torno de acceso — Deportes Medina Sidonia
+Documentation=https://github.com/CurritoAst/deportes-medina-sidonia
+# Espera a que la red esté lista (para hablar con el lector y con la web)
+After=network-online.target
+Wants=network-online.target
+# No abandonar aunque se reinicie muchas veces (el lector puede tardar en estar)
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# El instalador (instalar-servicio.sh) sustituye esta ruta por la real del proyecto
+WorkingDirectory=/opt/deportes-medina-sidonia
+# La configuración (IPs, pines, web…) va en este fichero aparte, fácil de editar
+EnvironmentFile=/etc/acceso-torno.env
+ExecStart=/usr/bin/env node /opt/deportes-medina-sidonia/acceso/acceso.js
+Restart=always
+RestartSec=5
+# Todo queda en el journal del sistema:  journalctl -u acceso-torno -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=acceso-torno
+
+[Install]
+WantedBy=multi-user.target

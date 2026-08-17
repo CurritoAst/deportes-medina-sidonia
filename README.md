@@ -137,6 +137,34 @@ El disparo del relé es configurable por variables de entorno; por defecto
 Ejemplo en la Raspberry del torno:
 `MSD_GPIO=raspi-gpio MSD_RELE_ACTIVO_BAJO=1 MSD_PIN_ENTRADA=26 MSD_PIN_SALIDA=20 node acceso/acceso.js`
 
+### Arranque automático en la Raspberry (systemd)
+
+Para que el servicio arranque solo al encender la Pi y se reinicie solo si
+falla, hay un instalador de un comando. En la Raspberry, dentro del proyecto:
+
+```
+sudo bash acceso/instalar-servicio.sh
+```
+
+Crea el servicio `acceso-torno` (systemd) y deja la configuración en
+`/etc/acceso-torno.env` (IPs de los lectores, web, pines del relé…), fácil de
+editar sin tocar código. Comandos:
+
+```
+sudo systemctl status acceso-torno       # estado
+sudo journalctl -u acceso-torno -f        # registro en directo
+sudo nano /etc/acceso-torno.env           # cambiar config
+sudo systemctl restart acceso-torno       # aplicar cambios
+```
+
+Requiere Node en la Pi (`sudo apt install -y nodejs`, o Node 18+ de NodeSource).
+Consejo: empieza con `MSD_SOLO_ESCUCHA=1` en el fichero de config para validar la
+lectura sin abrir nada; cuando esté comprobado, coméntalo y reinicia.
+
+> Si reutilizas la misma Raspberry del instalador, **desactiva antes su sistema**
+> (el de Sporttia arrancaba por cron cada minuto: `sudo crontab -e` y quita/comenta
+> la línea de `sdaemon`), para que no compita por el lector ni por el relé.
+
 Novedades frente al sistema anterior:
 - **QR dinámico** (rotatorio cada 30 s, firmado, **numérico** para que cualquier
   lector lo transmita): una captura del QR deja de valer a los segundos.
