@@ -1,8 +1,8 @@
 /* ==========================================================================
-   Deportes · Medina Sidonia — código QR dinámico (versión Node)
+   Deportes · Medina Sidonia — código QR dinámico NUMÉRICO (versión Node)
    Reimplementación EXACTA de js/token.js para el servicio de acceso.
-   Formato:  MSD2|<nfcUid>|<T>|<FIRMA>
-   FIRMA = primeros 4 bytes de HMAC-SHA256(seed, "nfcUid|T") en HEX (8 car.).
+   Formato:  <nfcUid><CÓDIGO(8 díg.)>
+   CÓDIGO = HMAC-SHA256(seed, "nfcUid|T") primeros 4 bytes como entero, mod 10^8.
    Si cambias el algoritmo aquí, cámbialo también en js/token.js.
    ========================================================================== */
 
@@ -11,48 +11,42 @@
 const crypto = require('crypto');
 
 const VENTANA = 30;      // segundos
-const TOLERANCIA = 1;    // ±1 ventana de margen
+const TOLERANCIA = 1;    // se aceptan T, T-1 y T+1
+const DIGITOS = 8;
 
 function ventanaActual(msEpoch) {
   return Math.floor((msEpoch || Date.now()) / 1000 / VENTANA);
 }
 
-function firma(nfcUid, seed, T) {
+function codigo(nfcUid, seed, T) {
   const mac = crypto.createHmac('sha256', Buffer.from(seed, 'utf8'))
     .update(nfcUid + '|' + T, 'utf8')
     .digest();
-  return mac.slice(0, 4).toString('hex').toUpperCase();
+  return String(mac.readUInt32BE(0) % 100000000).padStart(DIGITOS, '0');
 }
 
 function generar(nfcUid, seed, msEpoch) {
   const T = ventanaActual(msEpoch);
-  return { payload: `MSD2|${nfcUid}|${T}|${firma(nfcUid, seed, T)}`, T };
+  return { payload: `${nfcUid}${codigo(nfcUid, seed, T)}`, T };
 }
 
-const esDinamico = (texto) => typeof texto === 'string' && texto.startsWith('MSD2|');
+const esDinamico = (t) => typeof t === 'string' && /^\d+$/.test(t) && t.length >= DIGITOS + 4;
 
-/* buscarSeed(uid) -> semilla o null. Devuelve { ok, nfcUid, T, motivo }. */
+/* buscarSeed(uid) -> semilla o null. Devuelve { ok, nfcUid, motivo }. */
 function validar(payload, buscarSeed, msEpoch) {
-  const partes = String(payload).split('|');
-  if (partes.length !== 4 || partes[0] !== 'MSD2') {
+  const p = String(payload);
+  if (!/^\d+$/.test(p) || p.length < DIGITOS + 4) {
     return { ok: false, nfcUid: null, motivo: 'QR no reconocido' };
   }
-  const nfcUid = partes[1];
-  const T = Number(partes[2]);
-  const code = partes[3];
-  if (!/^\d+$/.test(partes[2]) || !/^[0-9A-F]{8}$/.test(code)) {
-    return { ok: false, nfcUid, motivo: 'QR con formato inválido' };
-  }
-  const ahora = ventanaActual(msEpoch);
-  if (Math.abs(ahora - T) > TOLERANCIA) {
-    return { ok: false, nfcUid, T, motivo: 'QR caducado (código antiguo)' };
-  }
+  const code = p.slice(-DIGITOS);
+  const nfcUid = p.slice(0, -DIGITOS);
   const seed = buscarSeed(nfcUid);
-  if (!seed) return { ok: false, nfcUid, T, motivo: 'Carnet no reconocido' };
-  if (firma(nfcUid, seed, T) !== code) {
-    return { ok: false, nfcUid, T, motivo: 'Firma del QR no válida' };
+  if (!seed) return { ok: false, nfcUid, motivo: 'Carnet no reconocido' };
+  const ahora = ventanaActual(msEpoch);
+  for (let d = -TOLERANCIA; d <= TOLERANCIA; d++) {
+    if (codigo(nfcUid, seed, ahora + d) === code) return { ok: true, nfcUid, motivo: 'QR válido' };
   }
-  return { ok: true, nfcUid, T, motivo: 'QR válido' };
+  return { ok: false, nfcUid, motivo: 'QR no válido o caducado' };
 }
 
-module.exports = { generar, validar, firma, esDinamico, ventanaActual, VENTANA, TOLERANCIA };
+module.exports = { generar, validar, codigo, esDinamico, ventanaActual, VENTANA, TOLERANCIA, DIGITOS };

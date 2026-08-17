@@ -540,10 +540,7 @@ const MSDAuth = (function () {
      socio). Devuelve el contenido del QR y cuándo caduca, para la cuenta atrás. */
   async function cargaQrDinamica(usuario) {
     if (!usuario || !usuario.abono || !usuario.abono.nfcUid || !usuario.abono.qrSeed) return null;
-    if (typeof MSDToken === 'undefined') {
-      const legado = cargaQr(usuario);
-      return legado ? { payload: legado, expiraEnMs: 0, ventana: 0 } : null;
-    }
+    if (typeof MSDToken === 'undefined') return null;
     return MSDToken.generar(usuario.abono.nfcUid, usuario.abono.qrSeed);
   }
 
@@ -598,35 +595,38 @@ const MSDAuth = (function () {
 
   /* Valida un QR. Acepta el token DINÁMICO nuevo (MSD2|…) y el estático legado
      (MSD|…). Es asíncrono porque el token dinámico verifica un HMAC. */
+  /* Valida CUALQUIER lectura del torno (tarjeta/pulsera o QR), venga de la cámara
+     o del lector físico. Estrategia "match-first":
+       1) Si coincide con un UID de tarjeta conocido → acceso por NFC.
+       2) Si no, y es un token dinámico numérico válido → acceso por QR.
+       3) Si es numérico pero desconocido → tarjeta no reconocida.
+       4) Cualquier otra cosa → QR ilegible/ajeno.
+     Es asíncrona porque el token dinámico verifica un HMAC. */
   async function validarAccesoQr(carga, direccion) {
-    const texto = String(carga);
+    const v = String(carga).trim();
     const dir = direccion === 'salida' ? 'salida' : 'entrada';
-
-    if (typeof MSDToken !== 'undefined' && MSDToken.esDinamico(texto)) {
-      const r = await MSDToken.validar(texto, (uid) => {
+    if (!v) {
+      anotarAcceso(null, 'qr', 'denegado', 'Lectura vacía', dir, v);
+      return { usuario: null, resultado: 'denegado', motivo: 'Lectura vacía', direccion: dir };
+    }
+    // 1) Tarjeta/pulsera física conocida (su UID va tal cual).
+    if (buscarPorIdentificador(v)) return validarAcceso(v, 'nfc', dir);
+    // 2) Token dinámico numérico (QR rotatorio del carnet).
+    if (typeof MSDToken !== 'undefined' && MSDToken.esDinamico(v)) {
+      const r = await MSDToken.validar(v, (uid) => {
         const u = buscarPorNfcUid(uid);
         return u && u.abono ? u.abono.qrSeed : null;
       });
-      if (!r.ok) {
-        const u = r.nfcUid ? buscarPorNfcUid(r.nfcUid) : null;
-        anotarAcceso(u ? u.id : null, 'qr', 'denegado', r.motivo, dir, texto);
-        return { usuario: u || null, resultado: 'denegado', motivo: r.motivo, direccion: dir };
-      }
-      return validarAcceso(r.nfcUid, 'qr', dir);
+      if (r.ok) return validarAcceso(r.nfcUid, 'qr', dir);
+      const u = r.nfcUid ? buscarPorNfcUid(r.nfcUid) : null;
+      anotarAcceso(u ? u.id : null, 'qr', 'denegado', r.motivo, dir, v);
+      return { usuario: u || null, resultado: 'denegado', motivo: r.motivo, direccion: dir };
     }
-
-    // QR estático legado: MSD|nfcId|hasta|firma
-    const partes = texto.split('|');
-    if (partes.length !== 4 || partes[0] !== 'MSD') {
-      anotarAcceso(null, 'qr', 'denegado', 'QR ilegible o ajeno', dir, texto);
-      return { usuario: null, resultado: 'denegado', motivo: 'QR ilegible o ajeno', direccion: dir };
-    }
-    const u = buscarPorNfc(partes[1]);
-    if (u && cargaQr(u) !== texto) {
-      anotarAcceso(u.id, 'qr', 'denegado', 'Firma del QR no válida', dir, texto);
-      return { usuario: u, resultado: 'denegado', motivo: 'Firma del QR no válida', direccion: dir };
-    }
-    return validarAcceso(partes[1], 'qr', dir);
+    // 3) Numérico pero no reconocido → se trata como tarjeta desconocida.
+    if (/^\d+$/.test(v)) return validarAcceso(v, 'nfc', dir);
+    // 4) Texto ilegible o QR ajeno.
+    anotarAcceso(null, 'qr', 'denegado', 'QR no reconocido', dir, v);
+    return { usuario: null, resultado: 'denegado', motivo: 'QR no reconocido', direccion: dir };
   }
 
   /* Aforo del día a partir de los accesos reales: entradas − salidas. */

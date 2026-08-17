@@ -1,6 +1,6 @@
-/* Página de QR de prueba del torno: pinta un QR válido (token dinámico real de un
-   socio de demostración) y otro no válido (misma ventana pero con la firma
-   manipulada), regenerándolos cada segundo. Reutiliza MSDQr y MSDToken. */
+/* Página de QR de prueba del torno: pinta un QR válido (token dinámico numérico
+   real de un socio de demostración) y otro no válido (mismo socio pero con un
+   código falso), regenerándolos cada segundo. Reutiliza MSDQr y MSDToken. */
 'use strict';
 
 // Datos del carnet de demostración (coinciden con la siembra de la web).
@@ -10,7 +10,7 @@ const SEED = 'a1b2c3d4e5f60001';
 let ultimoOk = '', ultimoMal = '';
 
 async function pintar() {
-  // ---- QR válido: token dinámico real ----
+  // ---- QR válido: token dinámico numérico real ----
   const val = await MSDToken.generar(UID, SEED);
   if (val.payload !== ultimoOk) {
     ultimoOk = val.payload;
@@ -20,9 +20,8 @@ async function pintar() {
   const seg = Math.max(0, Math.ceil(val.expiraEnMs / 1000));
   document.getElementById('seg-ok').textContent = seg;
 
-  // ---- QR no válido: misma ventana pero firma falsa (00000000) ----
-  const T = MSDToken.ventanaActual();
-  const malPayload = `MSD2|${UID}|${T}|00000000`;
+  // ---- QR no válido: mismo socio pero con código falso (8 ceros) ----
+  const malPayload = UID + '00000000';
   if (malPayload !== ultimoMal) {
     ultimoMal = malPayload;
     document.getElementById('qr-mal').innerHTML = MSDQr.comoSvg(malPayload, { color: '#b3261e' });

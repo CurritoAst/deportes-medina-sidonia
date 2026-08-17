@@ -144,29 +144,32 @@ function validar(ident, metodo, direccion) {
   return { usuarioId: u.id, resultado: 'ok', motivo: 'Abono en vigor', direccion: dir, raw: ident, metodo, nombre: u.nombre };
 }
 
-/* Decide qué es lo leído y lo valida. */
+/* Decide qué es lo leído y lo valida ("match-first", igual que la web):
+   1) tarjeta conocida → NFC, 2) token dinámico numérico → QR, 3) numérico
+   desconocido → tarjeta no reconocida, 4) texto raro → ilegible. */
 function procesarLectura(texto, direccion) {
-  const limpio = String(texto).trim();
-  if (!limpio) return null;
+  const v = String(texto).trim();
+  if (!v) return null;
 
-  // QR dinámico nuevo (MSD2|uid|T|firma)
-  if (token.esDinamico(limpio)) {
-    const v = token.validar(limpio, (uid) => {
+  // 1) Tarjeta/pulsera física conocida (su UID va tal cual).
+  if (porUid.get(v) || porNfcId.get(v)) return validar(v, 'nfc', direccion);
+
+  // 2) Token dinámico numérico (QR rotatorio del carnet).
+  if (token.esDinamico(v)) {
+    const r = token.validar(v, (uid) => {
       const s = porUid.get(uid);
       return s && s.qrSeed ? s.qrSeed : null;
     });
-    if (!v.ok) {
-      const s = v.nfcUid ? porUid.get(v.nfcUid) : null;
-      return { usuarioId: s ? s.id : null, resultado: 'denegado', motivo: v.motivo, direccion, raw: limpio, metodo: 'qr', nombre: s ? s.nombre : null };
-    }
-    return validar(v.nfcUid, 'qr', direccion);
+    if (r.ok) return validar(r.nfcUid, 'qr', direccion);
+    const s = r.nfcUid ? porUid.get(r.nfcUid) : null;
+    return { usuarioId: s ? s.id : null, resultado: 'denegado', motivo: r.motivo, direccion, raw: v, metodo: 'qr', nombre: s ? s.nombre : null };
   }
 
-  // Solo dígitos → UID de tarjeta/pulsera (lectura NFC).
-  if (/^\d{4,24}$/.test(limpio)) return validar(limpio, 'nfc', direccion);
+  // 3) Numérico corto no reconocido → tarjeta desconocida.
+  if (/^\d+$/.test(v)) return validar(v, 'nfc', direccion);
 
-  // Cualquier otra cosa: identificador no reconocido.
-  return { usuarioId: null, resultado: 'denegado', motivo: 'Lectura no reconocida', direccion, raw: limpio.slice(0, 64), metodo: 'qr' };
+  // 4) Cualquier otra cosa: identificador no reconocido.
+  return { usuarioId: null, resultado: 'denegado', motivo: 'Lectura no reconocida', direccion, raw: v.slice(0, 64), metodo: 'qr' };
 }
 
 /* ---------- Relé y LEDs (GPIO en la Raspberry) ---------- */

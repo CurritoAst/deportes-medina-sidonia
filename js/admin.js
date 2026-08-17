@@ -1327,11 +1327,8 @@
   $('#torno-validar-manual').addEventListener('click', async () => {
     const texto = $('#torno-manual').value.trim();
     if (!texto) { avisar('Pega primero el contenido de un QR o un UID.', 'error'); return; }
-    // Solo dígitos → se trata como UID de tarjeta (lectura NFC).
-    const res = /^\d{6,20}$/.test(texto)
-      ? MSDAuth.validarAcceso(texto, 'nfc', direccionTorno())
-      : await MSDAuth.validarAccesoQr(texto, direccionTorno());
-    reaccionTorno(res);
+    // El validador decide solo si es una tarjeta conocida o un token de QR.
+    reaccionTorno(await MSDAuth.validarAccesoQr(texto, direccionTorno()));
   });
 
   /* ==========================================================================
