@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR de prueba · Torno Medina Sidonia</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <style>
+    :root { --tinta:#241F17; --suave:#6b6252; --verde:#1f7a4d; --rojo:#b3261e; --linea:#e6e0d4; --crema:#faf7f0; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--tinta); background:var(--crema); padding:24px 16px 60px; }
+    h1 { font-size:1.4rem; text-align:center; margin:0 0 4px; }
+    .sub { text-align:center; color:var(--suave); margin:0 auto 24px; max-width:640px; font-size:.95rem; }
+    .rejilla { display:grid; gap:22px; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); max-width:760px; margin:0 auto; }
+    .tarjeta { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:20px; text-align:center; box-shadow:0 6px 20px rgba(0,0,0,.05); }
+    .tarjeta--ok { border-top:5px solid var(--verde); }
+    .tarjeta--mal { border-top:5px solid var(--rojo); }
+    .estado { font-weight:700; font-size:1.05rem; margin:0 0 14px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .tarjeta--ok .estado { color:var(--verde); }
+    .tarjeta--mal .estado { color:var(--rojo); }
+    .qr { width:220px; height:220px; margin:0 auto; }
+    .qr svg { width:100%; height:100%; border-radius:8px; border:1px solid var(--linea); }
+    .cuenta { color:var(--suave); font-size:.85rem; margin:12px 0 2px; }
+    .cuenta strong { color:var(--tinta); font-variant-numeric:tabular-nums; }
+    .payload { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size:.72rem; color:var(--suave); word-break:break-all; margin:8px 0 0; }
+    .desc { font-size:.85rem; color:var(--suave); margin:10px 0 0; }
+    .pie { max-width:640px; margin:28px auto 0; font-size:.85rem; color:var(--suave); background:#fff; border:1px solid var(--linea); border-radius:12px; padding:16px 18px; }
+    .pie strong { color:var(--tinta); }
+  </style>
+</head>
+<body>
+  <h1>Códigos QR de prueba del torno</h1>
+  <p class="sub">Los dos se regeneran cada segundo. Escanéalos con la cámara del panel del torno
+    (o pega el texto de abajo en «pega el contenido de un QR») para ver conceder y denegar.</p>
+
+  <div class="rejilla">
+    <div class="tarjeta tarjeta--ok">
+      <p class="estado">✅ QR VÁLIDO</p>
+      <div class="qr" id="qr-ok"></div>
+      <p class="cuenta">Se renueva en <strong id="seg-ok">30</strong> s</p>
+      <p class="desc">Carnet real de <strong>Carmen Aragón</strong>, firmado y en vigor. El torno lo <strong>concede</strong>.</p>
+      <p class="payload" id="txt-ok"></p>
+    </div>
+
+    <div class="tarjeta tarjeta--mal">
+      <p class="estado">❌ QR NO VÁLIDO</p>
+      <div class="qr" id="qr-mal"></div>
+      <p class="cuenta">Se renueva en <strong id="seg-mal">30</strong> s</p>
+      <p class="desc">Mismo socio pero con la <strong>firma manipulada</strong>. El torno lo <strong>deniega</strong> («Firma del QR no válida»).</p>
+      <p class="payload" id="txt-mal"></p>
+    </div>
+  </div>
+
+  <p class="pie">
+    <strong>Para que el torno lo valide</strong>, abre antes la web una vez (así se crean los socios de demostración)
+    y usa el panel de administración → Torno. El QR válido corresponde a Carmen (UID 1399878112). El no válido lleva
+    una firma falsa a propósito, para demostrar que el código rotatorio no se puede falsificar.
+  </p>
+
+  <!-- Reutiliza el mismo generador de QR y de firma que usa la web y el torno -->
+  <script src="js/qr.js"></script>
+  <script src="js/token.js"></script>
+  <script>
+    'use strict';
+    // Datos del carnet de demostración (coinciden con la siembra de la web).
+    const UID = '1399878112';
+    const SEED = 'a1b2c3d4e5f60001';
+
+    let ultimoOk = '', ultimoMal = '';
+
+    async function pintar() {
+      // ---- QR válido: token dinámico real ----
+      const val = await MSDToken.generar(UID, SEED);
+      if (val.payload !== ultimoOk) {
+        ultimoOk = val.payload;
+        document.getElementById('qr-ok').innerHTML = MSDQr.comoSvg(val.payload, { color: '#1f7a4d' });
+        document.getElementById('txt-ok').textContent = val.payload;
+      }
+      document.getElementById('seg-ok').textContent = Math.max(0, Math.ceil(val.expiraEnMs / 1000));
+
+      // ---- QR no válido: mismo instante pero firma falsa (00000000) ----
+      const T = MSDToken.ventanaActual();
+      const malPayload = `MSD2|${UID}|${T}|00000000`;
+      if (malPayload !== ultimoMal) {
+        ultimoMal = malPayload;
+        document.getElementById('qr-mal').innerHTML = MSDQr.comoSvg(malPayload, { color: '#b3261e' });
+        document.getElementById('txt-mal').textContent = malPayload;
+      }
+      document.getElementById('seg-mal').textContent = Math.max(0, Math.ceil(val.expiraEnMs / 1000));
+    }
+
+    pintar();
+    setInterval(pintar, 1000);
+  </script>
+</body>
+</html>
