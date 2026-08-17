@@ -60,37 +60,6 @@
   <!-- Reutiliza el mismo generador de QR y de firma que usa la web y el torno -->
   <script src="js/qr.js"></script>
   <script src="js/token.js"></script>
-  <script>
-    'use strict';
-    // Datos del carnet de demostración (coinciden con la siembra de la web).
-    const UID = '1399878112';
-    const SEED = 'a1b2c3d4e5f60001';
-
-    let ultimoOk = '', ultimoMal = '';
-
-    async function pintar() {
-      // ---- QR válido: token dinámico real ----
-      const val = await MSDToken.generar(UID, SEED);
-      if (val.payload !== ultimoOk) {
-        ultimoOk = val.payload;
-        document.getElementById('qr-ok').innerHTML = MSDQr.comoSvg(val.payload, { color: '#1f7a4d' });
-        document.getElementById('txt-ok').textContent = val.payload;
-      }
-      document.getElementById('seg-ok').textContent = Math.max(0, Math.ceil(val.expiraEnMs / 1000));
-
-      // ---- QR no válido: mismo instante pero firma falsa (00000000) ----
-      const T = MSDToken.ventanaActual();
-      const malPayload = `MSD2|${UID}|${T}|00000000`;
-      if (malPayload !== ultimoMal) {
-        ultimoMal = malPayload;
-        document.getElementById('qr-mal').innerHTML = MSDQr.comoSvg(malPayload, { color: '#b3261e' });
-        document.getElementById('txt-mal').textContent = malPayload;
-      }
-      document.getElementById('seg-mal').textContent = Math.max(0, Math.ceil(val.expiraEnMs / 1000));
-    }
-
-    pintar();
-    setInterval(pintar, 1000);
-  </script>
+  <script src="js/qr-prueba.js"></script>
 </body>
 </html>
