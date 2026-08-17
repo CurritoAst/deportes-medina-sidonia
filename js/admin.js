@@ -1145,24 +1145,72 @@
   let camaraFlujo = null;
   let camaraRAF = null;
 
-  async function arrancarCamara() {
+  function mensajeCamara(e) {
+    switch (e && e.name) {
+      case 'NotAllowedError':
+      case 'SecurityError':
+        return 'Permiso de cámara denegado. Actívalo en el navegador (icono del candado → Cámara → Permitir) y reintenta.';
+      case 'NotFoundError':
+      case 'OverconstrainedError':
+      case 'DevicesNotFoundError':
+        return 'No se detecta ninguna cámara. Comprueba que esté conectada y que el sistema permita el acceso (en Windows: Ajustes → Privacidad y seguridad → Cámara → activa el acceso para las aplicaciones de escritorio).';
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'La cámara está ocupada por otra aplicación (Zoom, Teams, Meet, otra pestaña…). Ciérrala y reintenta.';
+      default:
+        return `No se pudo abrir la cámara${e && e.name ? ' (' + e.name + ')' : ''}. Prueba con Chrome/Edge/Firefox actualizado y sobre HTTPS.`;
+    }
+  }
+
+  /* Pide la cámara con tolerancia: preferimos la trasera (móvil) pero caemos a
+     cualquiera (PC con webcam frontal). Con deviceId abre esa cámara concreta. */
+  async function obtenerFlujoCamara(deviceId) {
+    const intentos = deviceId
+      ? [{ video: { deviceId: { exact: deviceId } }, audio: false }]
+      : [
+          { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 } }, audio: false },
+          { video: true, audio: false }
+        ];
+    let ultimoError;
+    for (const restr of intentos) {
+      try { return await navigator.mediaDevices.getUserMedia(restr); }
+      catch (e) { ultimoError = e; if (e.name === 'NotAllowedError') throw e; }
+    }
+    throw ultimoError;
+  }
+
+  async function poblarSelectorCamaras() {
+    const sel = $('#torno-camara-sel');
+    if (!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+      if (cams.length <= 1) { sel.hidden = true; return; }
+      const track = camaraFlujo && camaraFlujo.getVideoTracks()[0];
+      const actualId = track && track.getSettings ? track.getSettings().deviceId : '';
+      sel.innerHTML = cams.map((c, i) =>
+        `<option value="${esc(c.deviceId)}"${c.deviceId === actualId ? ' selected' : ''}>${esc(c.label || ('Cámara ' + (i + 1)))}</option>`).join('');
+      sel.hidden = false;
+    } catch (e) { sel.hidden = true; }
+  }
+
+  async function arrancarCamara(deviceId) {
     if (typeof jsQR === 'undefined') {
       avisar('El lector de QR (jsQR) no está cargado.', 'error');
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      avisar('Este navegador no permite usar la cámara.', 'error');
+      avisar('Este navegador no permite usar la cámara. Ábrelo en Chrome/Edge/Firefox actualizado y sobre HTTPS.', 'error');
       return;
     }
+    // Si se está cambiando de cámara, cierra la anterior primero.
+    cancelAnimationFrame(camaraRAF);
+    if (camaraFlujo) { camaraFlujo.getTracks().forEach((t) => t.stop()); camaraFlujo = null; }
+
     try {
-      camaraFlujo = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 640 } },
-        audio: false
-      });
+      camaraFlujo = await obtenerFlujoCamara(deviceId);
     } catch (e) {
-      avisar(e && e.name === 'NotAllowedError'
-        ? 'Permiso de cámara denegado. Actívalo en el navegador para escanear.'
-        : 'No se encontró ninguna cámara disponible.', 'error');
+      avisar(mensajeCamara(e), 'error');
+      pararCamara();
       return;
     }
     const video = $('#torno-video');
@@ -1170,6 +1218,7 @@
     $('#torno-camara-boton').hidden = true;
     video.srcObject = camaraFlujo;
     await video.play().catch(() => {});
+    poblarSelectorCamaras();
 
     const lienzo = document.createElement('canvas');
     const ctx = lienzo.getContext('2d', { willReadFrequently: true });
@@ -1202,12 +1251,16 @@
     if (video) video.srcObject = null;
     const zona = $('#torno-camara-zona');
     if (zona) zona.hidden = true;
+    const sel = $('#torno-camara-sel');
+    if (sel) sel.hidden = true;
     const boton = $('#torno-camara-boton');
     if (boton) boton.hidden = false;
   }
 
-  $('#torno-camara-boton').addEventListener('click', arrancarCamara);
+  $('#torno-camara-boton').addEventListener('click', () => arrancarCamara());
   $('#torno-camara-parar').addEventListener('click', pararCamara);
+  const selCamara = $('#torno-camara-sel');
+  if (selCamara) selCamara.addEventListener('change', (e) => arrancarCamara(e.target.value));
   window.addEventListener('beforeunload', pararCamara);
 
   /* ---------- Exportar CSV ---------- */
