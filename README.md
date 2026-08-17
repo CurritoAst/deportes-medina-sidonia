@@ -137,33 +137,39 @@ El disparo del relé es configurable por variables de entorno; por defecto
 Ejemplo en la Raspberry del torno:
 `MSD_GPIO=raspi-gpio MSD_RELE_ACTIVO_BAJO=1 MSD_PIN_ENTRADA=26 MSD_PIN_SALIDA=20 node acceso/acceso.js`
 
-### Arranque automático en la Raspberry (systemd)
+### Puesta en marcha en la Raspberry (llave en mano)
 
-Para que el servicio arranque solo al encender la Pi y se reinicie solo si
-falla, hay un instalador de un comando. En la Raspberry, dentro del proyecto:
-
-```
-sudo bash acceso/instalar-servicio.sh
-```
-
-Crea el servicio `acceso-torno` (systemd) y deja la configuración en
-`/etc/acceso-torno.env` (IPs de los lectores, web, pines del relé…), fácil de
-editar sin tocar código. Comandos:
+En una Raspberry con Raspberry Pi OS y red, un solo comando instala Node, el
+proyecto y el servicio con **arranque automático**, ya configurado con las IPs de
+la instalación:
 
 ```
-sudo systemctl status acceso-torno       # estado
-sudo journalctl -u acceso-torno -f        # registro en directo
-sudo nano /etc/acceso-torno.env           # cambiar config
-sudo systemctl restart acceso-torno       # aplicar cambios
+curl -fsSL https://raw.githubusercontent.com/CurritoAst/deportes-medina-sidonia/main/acceso/setup-pi.sh | sudo bash
 ```
 
-Requiere Node en la Pi (`sudo apt install -y nodejs`, o Node 18+ de NodeSource).
-Consejo: empieza con `MSD_SOLO_ESCUCHA=1` en el fichero de config para validar la
-lectura sin abrir nada; cuando esté comprobado, coméntalo y reinicia.
+Arranca en **modo seguro** (solo-escucha: registra pero no abre). Luego, tres pasos:
 
-> Si reutilizas la misma Raspberry del instalador, **desactiva antes su sistema**
-> (el de Sporttia arrancaba por cron cada minuto: `sudo crontab -e` y quita/comenta
-> la línea de `sdaemon`), para que no compita por el lector ni por el relé.
+```
+# 1) Confirmar que lee (pasa una tarjeta / QR y míralo en el registro)
+sudo journalctl -u acceso-torno -f
+
+# 2) Calibrar el relé (si algún relé no cierra, edita los pines y repite)
+sudo bash /opt/deportes-medina-sidonia/acceso/test-rele.sh
+sudo nano /etc/acceso-torno.env        # MSD_PIN_* / MSD_RELE_ACTIVO_BAJO / MSD_GPIO
+
+# 3) Dar apertura real
+sudo bash /opt/deportes-medina-sidonia/acceso/ir-en-vivo.sh
+```
+
+A partir de ahí: enciende la Pi y funciona solo. Actualizar en el futuro:
+`git -C /opt/deportes-medina-sidonia pull && sudo systemctl restart acceso-torno`.
+Otros comandos: `sudo systemctl status acceso-torno`, `sudo systemctl restart acceso-torno`.
+
+> Los pines por defecto (BCM 26/20, activo-bajo) son los de la placa de relés
+> **Waveshare** estándar; con suerte ya valen y el paso 2 solo confirma. Si
+> reutilizas la **misma Pi** del instalador, desactiva antes su sistema
+> (`sudo crontab -e` → quita la línea de `sdaemon` de Sporttia) para que no
+> compita por el lector ni el relé.
 
 Novedades frente al sistema anterior:
 - **QR dinámico** (rotatorio cada 30 s, firmado, **numérico** para que cualquier
