@@ -23,7 +23,6 @@ module.exports = {
   DEDUP_MS: 2000,             // lecturas idénticas dentro de esta ventana → una sola
   SYNC_MS: 2 * 60 * 1000,     // cada cuánto se refresca la caché de socios
   RECONEXION_MS: 3000,        // espera entre reintentos de conexión al lector
-  PULSO_RELE_MS: 600,         // duración del pulso de apertura
 
   EDAD_MINIMA: 16,            // años
 
@@ -32,11 +31,27 @@ module.exports = {
      Actívalo con  MSD_SOLO_ESCUCHA=1 */
   SOLO_ESCUCHA: process.env.MSD_SOLO_ESCUCHA === '1',
 
-  /* Relé: por defecto SIMULA (imprime por consola, no toca GPIO). Para disparar
-     el relé real en la Raspberry:  MSD_RELE=gpio  (requiere la utilidad pinctrl). */
-  SIMULAR_RELE: process.env.MSD_RELE !== 'gpio',
-  // Pines GPIO (numeración BCM). Ajústalos a tu HAT de relés antes de usar 'gpio'.
-  PINES: { entrada: 26, salida: 20, ledVerde: 21, ledRojo: 16 },
+  /* ---------- Relé de apertura y LEDs ----------
+     Por defecto SIMULA (no toca hardware). En la instalación se ajusta todo por
+     variables de entorno; no hace falta tocar código. Ejemplo típico:
+       MSD_GPIO=raspi-gpio  (o 'pinctrl' / 'sysfs')
+       MSD_GPIO_NUM=bcm     (o 'board' si tienes los pines del header físico)
+       MSD_RELE_ACTIVO_BAJO=1   (placas de relé Waveshare suelen serlo)
+       MSD_PIN_ENTRADA=26  MSD_PIN_SALIDA=20
+       MSD_PIN_LED_VERDE=21  MSD_PIN_LED_ROJO=16   (opcionales)
+     Prueba de cableado sin tarjetas:  node acceso/acceso.js --test-rele  */
+  RELE: {
+    backend: process.env.MSD_GPIO || 'sim',           // 'sim'|'pinctrl'|'raspi-gpio'|'sysfs'
+    numeracion: process.env.MSD_GPIO_NUM || 'bcm',     // 'bcm'|'board'
+    activoBajo: process.env.MSD_RELE_ACTIVO_BAJO === '1',
+    pulsoMs: Number(process.env.MSD_PULSO_MS || 600),  // duración del pulso de apertura
+    pines: {
+      entrada: process.env.MSD_PIN_ENTRADA ? Number(process.env.MSD_PIN_ENTRADA) : 26,
+      salida: process.env.MSD_PIN_SALIDA ? Number(process.env.MSD_PIN_SALIDA) : 20,
+      ledVerde: process.env.MSD_PIN_LED_VERDE ? Number(process.env.MSD_PIN_LED_VERDE) : null,
+      ledRojo: process.env.MSD_PIN_LED_ROJO ? Number(process.env.MSD_PIN_LED_ROJO) : null
+    }
+  },
 
   CACHE_FICHERO: process.env.MSD_CACHE || path.join(__dirname, 'cache-socios.json')
 };

@@ -119,12 +119,31 @@ manda el QR dinámico de un socio, `s <uid>` una salida. Para el torno real:
 `MSD_HOST_ENTRADA=192.168.1.35 MSD_HOST_SALIDA=192.168.1.35 node acceso/acceso.js`.
 Modo solo-escucha (no abre ni registra, solo imprime): `MSD_SOLO_ESCUCHA=1`.
 
+### Relé de apertura (GPIO)
+
+El disparo del relé es configurable por variables de entorno; por defecto
+**simula** (no toca hardware). Prueba de cableado sin tarjetas:
+`node acceso/acceso.js --test-rele` (dispara cada relé y LED por turnos).
+
+| Variable | Para qué | Valores |
+|---|---|---|
+| `MSD_GPIO` | Método de acceso al GPIO | `sim` (def.) · `pinctrl` (Pi OS reciente) · `raspi-gpio` (Pi OS antiguo) · `sysfs` |
+| `MSD_GPIO_NUM` | Numeración de los pines | `bcm` (def.) · `board` (pin físico del header) |
+| `MSD_RELE_ACTIVO_BAJO` | Polaridad (relés Waveshare suelen serlo) | `1` = activo-bajo |
+| `MSD_PIN_ENTRADA` / `MSD_PIN_SALIDA` | Pin del relé de cada sentido | nº (def. 26 / 20) |
+| `MSD_PIN_LED_VERDE` / `MSD_PIN_LED_ROJO` | LEDs (opcionales) | nº |
+| `MSD_PULSO_MS` | Duración del pulso de apertura | ms (def. 600) |
+
+Ejemplo en la Raspberry del torno:
+`MSD_GPIO=raspi-gpio MSD_RELE_ACTIVO_BAJO=1 MSD_PIN_ENTRADA=26 MSD_PIN_SALIDA=20 node acceso/acceso.js`
+
 Novedades frente al sistema anterior:
-- **QR dinámico** (rotatorio cada 30 s, firmado): una captura del QR deja de
-  valer a los segundos. Sustituye al QR estático clonable.
+- **QR dinámico** (rotatorio cada 30 s, firmado, **numérico** para que cualquier
+  lector lo transmita): una captura del QR deja de valer a los segundos.
 - **UID real** de tarjeta (decimal ~10 díg.) y **control de edad** (mín. 16).
 - **Aforo en tiempo real** en la portada: entradas − salidas del día.
 - **Registro de accesos** con sentido (entrada/salida), método y valor leído.
+- **Aviso en vivo** en el panel cuando alguien pasa por el torno.
 
 ## Notas de seguridad (prototipo)
 

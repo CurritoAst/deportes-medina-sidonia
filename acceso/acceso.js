@@ -40,6 +40,7 @@ const hoy = () => {
 };
 const ts = () => new Date().toISOString().slice(11, 19);
 const log = (...a) => console.log(`[${ts()}]`, ...a);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function edadDe(birthdate) {
   if (!birthdate || !/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) return null;
@@ -174,25 +175,37 @@ function procesarLectura(texto, direccion) {
 
 /* ---------- Relé y LEDs (GPIO en la Raspberry) ---------- */
 
-const { spawn } = require('child_process');
-function gpio(pin, alto) {
-  // pinctrl viene de serie en Raspberry Pi OS reciente. Solo se usa con MSD_RELE=gpio.
-  try { spawn('pinctrl', ['set', String(pin), 'op', alto ? 'dh' : 'dl']); }
-  catch (e) { log('GPIO no disponible:', e.message); }
-}
+const crearGpio = require('./gpio');
+const rele = crearGpio(cfg.RELE);
 
 async function abrir(direccion) {
-  const pin = cfg.PINES[direccion];
-  if (cfg.SIMULAR_RELE) { log(`  ▸ (simulado) pulso de relé de ${direccion} durante ${cfg.PULSO_RELE_MS} ms`); return; }
-  gpio(pin, true);
-  await new Promise((r) => setTimeout(r, cfg.PULSO_RELE_MS));
-  gpio(pin, false);
+  const pin = cfg.RELE.pines[direccion];
+  if (rele.backend === 'sim') { log(`  ▸ (simulado) pulso de relé de ${direccion} durante ${cfg.RELE.pulsoMs} ms`); return; }
+  log(`  ▸ pulso de relé de ${direccion} (pin ${cfg.RELE.numeracion.toUpperCase()} ${pin}, ${cfg.RELE.pulsoMs} ms)`);
+  await rele.pulso(pin, cfg.RELE.pulsoMs);
 }
 
 function led(color) {
-  if (cfg.SIMULAR_RELE) return;
-  gpio(cfg.PINES.ledVerde, color === 'verde');
-  gpio(cfg.PINES.ledRojo, color === 'rojo');
+  if (rele.backend === 'sim') return;
+  rele.fijar(cfg.RELE.pines.ledVerde, color === 'verde');
+  rele.fijar(cfg.RELE.pines.ledRojo, color === 'rojo');
+}
+
+/* Prueba de cableado sin tarjetas: dispara cada relé y cada LED por turnos.
+   Uso:  node acceso/acceso.js --test-rele  */
+async function probarRele() {
+  const P = cfg.RELE.pines;
+  log(`Prueba de relé — backend '${rele.backend}', numeración ${cfg.RELE.numeracion}, activo-${cfg.RELE.activoBajo ? 'bajo' : 'alto'}.`);
+  if (rele.backend === 'sim') log('Estás en modo SIMULADO: exporta MSD_GPIO=raspi-gpio (o pinctrl/sysfs) para tocar el hardware.');
+  rele.inicializar([P.entrada, P.salida, P.ledVerde, P.ledRojo].filter((p) => p !== null && p !== undefined));
+  for (const dir of ['entrada', 'salida']) {
+    log(`  Pulso ${dir} (pin ${P[dir]}) durante ${cfg.RELE.pulsoMs} ms — el relé debe cerrar y volver a abrir.`);
+    await rele.pulso(P[dir], cfg.RELE.pulsoMs);
+    await sleep(900);
+  }
+  if (P.ledVerde !== null && P.ledVerde !== undefined) { log(`  LED verde (pin ${P.ledVerde}) encendido 1 s`); rele.fijar(P.ledVerde, true); await sleep(1000); rele.fijar(P.ledVerde, false); }
+  if (P.ledRojo !== null && P.ledRojo !== undefined) { log(`  LED rojo (pin ${P.ledRojo}) encendido 1 s`); rele.fijar(P.ledRojo, true); await sleep(1000); rele.fijar(P.ledRojo, false); }
+  log('Prueba terminada. Si un relé no cerró, revisa pin/polaridad (MSD_RELE_ACTIVO_BAJO) y backend (MSD_GPIO).');
 }
 
 /* ---------- Registro del acceso en la web ---------- */
@@ -272,9 +285,16 @@ function conectarLector(lector) {
 /* ---------- Arranque ---------- */
 
 async function principal() {
+  // Prueba de cableado del relé y sale (no necesita web ni lectores).
+  if (process.argv.includes('--test-rele')) { await probarRele(); return; }
+
   log('Servicio de acceso del torno — arrancando.');
-  log(cfg.SOLO_ESCUCHA ? 'MODO SOLO-ESCUCHA (no abre ni registra).'
-    : (cfg.SIMULAR_RELE ? 'Relé SIMULADO (no toca GPIO).' : 'Relé por GPIO real.'));
+  const P = cfg.RELE.pines;
+  if (cfg.SOLO_ESCUCHA) log('MODO SOLO-ESCUCHA (no abre ni registra, solo imprime).');
+  else if (rele.backend === 'sim') log("Relé SIMULADO (no toca GPIO). Para el torno real: MSD_GPIO=raspi-gpio|pinctrl|sysfs");
+  else log(`Relé por GPIO real — backend '${rele.backend}', numeración ${cfg.RELE.numeracion}, activo-${cfg.RELE.activoBajo ? 'bajo' : 'alto'}, pines entrada=${P.entrada} salida=${P.salida}.`);
+
+  rele.inicializar([P.entrada, P.salida, P.ledVerde, P.ledRojo].filter((p) => p !== null && p !== undefined));
   cargarCacheDisco();
   await sincronizar();
   setInterval(sincronizar, cfg.SYNC_MS);
