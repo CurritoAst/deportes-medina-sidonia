@@ -368,6 +368,25 @@
 
 <div class="avisos" id="avisos" aria-live="polite" aria-atomic="false"></div>
 
+<!-- Aviso en vivo: salta cuando alguien pasa por el torno (real u otro dispositivo) -->
+<div class="acceso-vivo" id="acceso-vivo" role="status" aria-live="assertive" hidden>
+  <div class="acceso-vivo__vis torno" id="acceso-vivo-torno">
+    <span class="torno__luz" aria-hidden="true"></span>
+    <div class="torno__cuerpo" aria-hidden="true">
+      <span class="torno__poste torno__poste--izq"></span>
+      <span class="torno__brazo"></span>
+      <span class="torno__poste torno__poste--der"></span>
+    </div>
+  </div>
+  <div class="acceso-vivo__info">
+    <span class="acceso-vivo__vivo">● EN DIRECTO</span>
+    <strong id="acceso-vivo-titulo">Entrada</strong>
+    <span id="acceso-vivo-nombre">—</span>
+    <small id="acceso-vivo-motivo">—</small>
+  </div>
+  <button class="acceso-vivo__cerrar" type="button" id="acceso-vivo-cerrar" aria-label="Cerrar aviso">&times;</button>
+</div>
+
 <script src="js/data.js"></script>
 <script src="js/qr.js"></script>
 <script src="js/token.js"></script>

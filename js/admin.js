@@ -416,7 +416,52 @@
       torno.classList.remove('torno--ok', 'torno--mal');
       estado.innerHTML = 'En espera<small>Acerca una pulsera o un QR</small>';
     }, 4000);
+    marcarAccesosVistos(); // lo generó este panel: no volver a avisarlo por SSE
     pintarAccesos();
+  }
+
+  /* ---------- Aviso de acceso EN VIVO ----------
+     Cuando llega un acceso desde FUERA (el torno real u otro dispositivo), el
+     panel lo muestra al momento con la animación del torno, esté en la sección
+     que esté. Los accesos que genera este mismo panel no se reavisan. */
+  let ultimoAccesoTs = 0;
+  let accesoVivoTimer = null;
+
+  function marcarAccesosVistos() {
+    ultimoAccesoTs = MSDAuth.accesos().reduce((m, a) => Math.max(m, a.ts), ultimoAccesoTs);
+  }
+
+  function detectarAccesoNuevo() {
+    const accesos = MSDAuth.accesos();
+    const nuevos = accesos.filter((a) => a.ts > ultimoAccesoTs);
+    if (!nuevos.length) return;
+    marcarAccesosVistos();
+    // el más reciente de los nuevos
+    const a = nuevos.reduce((m, x) => (x.ts > m.ts ? x : m), nuevos[0]);
+    mostrarAccesoVivo(a, nuevos.length);
+  }
+
+  function mostrarAccesoVivo(a, cuantos) {
+    const cont = $('#acceso-vivo');
+    const vis = $('#acceso-vivo-torno');
+    if (!cont || !vis) return;
+    const ok = a.resultado === 'ok';
+    const sentido = a.direccion === 'salida' ? 'Salida' : 'Entrada';
+    const nombre = a.usuarioId ? nombreDe(a.usuarioId) : (a.raw ? a.raw : 'Desconocido');
+
+    cont.classList.toggle('acceso-vivo--ok', ok);
+    cont.classList.toggle('acceso-vivo--mal', !ok);
+    vis.classList.remove('torno--ok', 'torno--mal');
+    void vis.offsetWidth; // reinicia la animación del brazo
+    vis.classList.add(ok ? 'torno--ok' : 'torno--mal');
+
+    $('#acceso-vivo-titulo').textContent = ok ? `${sentido} permitida` : `${sentido} denegada`;
+    $('#acceso-vivo-nombre').textContent = nombre + (cuantos > 1 ? `  (+${cuantos - 1} más)` : '');
+    $('#acceso-vivo-motivo').textContent = `${a.motivo} · ${fmtMomento.format(new Date(a.ts))}`;
+    cont.hidden = false;
+
+    clearTimeout(accesoVivoTimer);
+    accesoVivoTimer = setTimeout(() => { cont.hidden = true; }, 6500);
   }
 
   function pintarAccesos() {
@@ -1301,12 +1346,20 @@
     const u = MSDAuth.sesionActual();
     if (u && u.rol === 'admin') mostrarApp(u);
     else mostrarLogin();
+    marcarAccesosVistos(); // punto de partida: no avisar de accesos ya existentes
     // Eventos en directo del servidor: el panel se repinta al momento
-    MSDSync.escuchar(() => {
+    MSDSync.escuchar((clave) => {
       MSDAuth.recargar();
-      if (!$('#admin-app').hidden) irASeccion(seccionActual);
+      const enApp = !$('#admin-app').hidden;
+      // Un acceso llegado de fuera (torno real u otro dispositivo): avísalo en vivo
+      if (clave === 'msd_accesos' && enApp) detectarAccesoNuevo();
+      if (enApp) irASeccion(seccionActual);
     });
   });
+
+  // Cerrar el aviso en vivo a mano
+  const cerrarVivo = $('#acceso-vivo-cerrar');
+  if (cerrarVivo) cerrarVivo.addEventListener('click', () => { $('#acceso-vivo').hidden = true; });
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* opcional */ });
