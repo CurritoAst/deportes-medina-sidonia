@@ -1,0 +1,16 @@
+{
+  "name": "Deportes Medina Sidonia",
+  "short_name": "Deportes MS",
+  "description": "Reservas de pistas, clases con lista de espera y carnet del gimnasio del Complejo Prado de la Feria.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8FA",
+  "theme_color": "#1E3A5F",
+  "lang": "es",
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icono-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

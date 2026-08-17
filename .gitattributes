@@ -1,0 +1,4 @@
+# Normaliza saltos de línea a LF en el repositorio (el host de despliegue es Linux)
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf

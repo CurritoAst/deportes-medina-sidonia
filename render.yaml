@@ -1,0 +1,23 @@
+# Blueprint de Render — despliega la web tal cual (Node puro, sin dependencias).
+# En Render: New + → Blueprint → conecta este repo y aplica.
+# El servicio del torno (acceso/) NO se despliega aquí: corre junto al torno, en
+# la Raspberry, y apunta a la URL pública de este servicio.
+services:
+  - type: web
+    name: deportes-medina-sidonia
+    runtime: node
+    plan: free
+    # Sin dependencias que instalar; el comando queda por si se añaden luego.
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+    # Para que el estado (reservas, accesos) sobreviva a reinicios, sube el
+    # servicio a un plan con disco y descomenta esto (montado en /var/data):
+    # disk:
+    #   name: datos
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # y añade la variable de entorno  MSD_DATA_DIR = /var/data

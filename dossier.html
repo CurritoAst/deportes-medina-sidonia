@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Dossier · Sistema de reservas deportivas · Medina Sidonia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --verde:#1E3A5F; --hondo:#142A47; --cal:#F7F8FA; --anil:#A64A2E; --tinta:#16202B; --suave:#46525E; --linea:#D6DBE2; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Figtree,sans-serif; font-size:12.5px; line-height:1.5; color:var(--tinta); background:var(--cal); }
+    .pagina { max-width:210mm; margin:0 auto; background:#fff; padding:14mm 16mm; }
+    h1 { font-family:"Bricolage Grotesque",sans-serif; font-size:26px; margin:0 0 2px; color:var(--hondo); }
+    h2 { "Bricolage Grotesque",sans-serif; font-size:16px; margin:18px 0 6px; color:var(--verde); border-bottom:2px solid var(--verde); padding-bottom:3px; }
+    h3 { font-size:12.5px; margin:10px 0 3px; }
+    p, li { margin:0 0 6px; }
+    ul { padding-left:18px; margin:0 0 6px; }
+    .sub { color:var(--suave); margin-bottom:14px; }
+    .dos-col { display:grid; grid-template-columns:1fr 1fr; gap:0 22px; }
+    .caja { background:var(--cal); border-left:4px solid var(--anil); padding:8px 12px; margin:8px 0; }
+    .mono { font-family:"Spline Sans Mono",monospace; }
+    table { width:100%; border-collapse:collapse; font-size:12px; margin:6px 0; }
+    th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--linea); vertical-align:top; }
+    th { color:var(--suave); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; }
+    .pie-pagina { margin-top:16px; padding-top:8px; border-top:1px solid var(--linea); color:var(--suave); font-size:10.5px; }
+    .salto-pagina { break-before:page; }
+    @media print {
+      body { background:#fff; }
+      .pagina { max-width:none; padding:10mm 12mm; }
+      @page { size:A4; margin:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="pagina">
+  <h1>Reservas deportivas de Medina Sidonia</h1>
+  <p class="sub">Propuesta para el Complejo Deportivo Prado de la Feria · Demo en vivo disponible · [PENDIENTE: nombre y contacto del autor]</p>
+
+  <h2>Qué resuelve</h2>
+  <ul>
+    <li><strong>Para el vecino:</strong> toda la disponibilidad del día en una pantalla (la parrilla), reserva en dos toques desde el móvil, con el suplemento de luz visible <em>antes</em> de confirmar — la causa nº 1 de reclamaciones, eliminada.</li>
+    <li><strong>Para el técnico:</strong> bloquear una pista por mantenimiento avisa automáticamente a quien tenía reserva y tramita la devolución de oficio. Sin llamadas, sin discusiones en el mostrador.</li>
+    <li><strong>Para la Delegación:</strong> ocupación real por franja, instalación y día, y la demanda que hoy se pierde (listas de espera). Exactamente los datos que exige el <strong>PLID</strong> — requisito para las subvenciones de Diputación.</li>
+  </ul>
+
+  <h2>Qué se ve en la demo de seis minutos</h2>
+  <table>
+    <tr><th>Minuto</th><th>Recorrido</th></tr>
+    <tr><td class="mono">0:45</td><td>Reserva desde el móvil en la parrilla, suplemento de luz a la vista, justificante de liquidación al instante. Dos móviles a la vez no pueden coger la misma hora (reserva atómica en servidor).</td></tr>
+    <tr><td class="mono">2:00</td><td>El técnico bloquea el Pádel 1 por mantenimiento: el vecino afectado recibe el aviso en su campana al momento.</td></tr>
+    <tr><td class="mono">3:00</td><td>Panel de ocupación con los datos del PLID e informe exportable con aspecto de anexo municipal.</td></tr>
+    <tr><td class="mono">4:00</td><td>Accesibilidad demostrada en directo: reserva completa solo con teclado y con lector de pantalla. Auditoría automática WCAG 2.1 AA: cero violaciones, y declaración de accesibilidad ya publicada.</td></tr>
+  </table>
+
+  <h2>Cumplimiento desde el diseño</h2>
+  <div class="dos-col">
+    <div>
+      <h3>Accesibilidad (RD 1112/2018)</h3>
+      <p>WCAG 2.1 AA verificado con axe-core (0 violaciones) y recorrido por teclado. Declaración de accesibilidad publicada en el pie. La obligación legal es del Ayuntamiento: aquí ya está resuelta.</p>
+      <h3>Protección de datos</h3>
+      <p>Base jurídica: misión de interés público (art. 6.1.e RGPD). Sin analítica de terceros y, por tanto, <strong>sin banner de cookies</strong>. Datos en la UE. Contrato de encargado a firmar con el alojamiento.</p>
+    </div>
+    <div>
+      <h3>Naturaleza municipal del cobro</h3>
+      <p>El vecino recibe <strong>justificantes de liquidación de precio público</strong> (uso deportivo: exento de IVA, art. 20.Uno.13 LIVA), no «facturas». Preparado para tarifas por ordenanza y pasarela de la entidad colaboradora (fase 2).</p>
+      <h3>Sin secuestro tecnológico</h3>
+      <p><strong>El código y los datos son del Ayuntamiento.</strong> Tecnología estándar y documentada, exportación en CSV desde el primer día, migrable a Epicsa si algún día lo asume.</p>
+    </div>
+  </div>
+
+  <div class="caja">
+    <strong>El gancho:</strong> el PLID que la Diputación financia al 100 % necesita saber cuántas horas se usan las pistas, a qué horas se llena el complejo y cuánta demanda se queda fuera. Hoy eso se estima. Con este sistema, <strong>se mide desde el primer mes</strong>.
+  </div>
+</div>
+
+<div class="pagina salto-pagina">
+  <h2>Las preguntas que se harán, respondidas</h2>
+  <table>
+    <tr><th>Pregunta</th><th>Respuesta</th></tr>
+    <tr><td>«¿Esto no nos lo hace Epicsa?»</td><td>[PENDIENTE: verificar catálogo de Epicsa]. En cualquier caso: esto existe, funciona hoy, y el código queda en manos del Ayuntamiento, migrable a Epicsa cuando lo asuman. No se pide exclusividad.</td></tr>
+    <tr><td>«¿Quién lo mantiene?»</td><td>Tecnología estándar sin dependencias privativas, código en repositorio municipal, documentación de despliegue entregada, coste de operación por debajo de [PENDIENTE] €/mes. No dependen del autor.</td></tr>
+    <tr><td>«¿Cumple accesibilidad?»</td><td>Se demuestra en la reunión con un lector de pantalla, no se afirma. Cero violaciones WCAG 2.1 AA en auditoría automática y declaración publicada.</td></tr>
+    <tr><td>«¿Y la protección de datos?»</td><td>Art. 6.1.e RGPD, datos en la UE, contrato de encargado, DPD municipal como contacto, sin cookies de terceros.</td></tr>
+    <tr><td>«¿Cuánto cuesta?»</td><td>Piloto de un trimestre con una instalación: [PENDIENTE] € (dentro del contrato menor, art. 118 LCSP). Operación mensual desglosada: alojamiento + dominio + correo, [PENDIENTE] €/mes.</td></tr>
+    <tr><td>«¿Y si se cae el día del torneo?»</td><td>Copias de seguridad diarias, la parrilla del día consultable sin conexión (PWA) y el procedimiento en papel como respaldo. Riesgo reconocido, plan B enseñado.</td></tr>
+  </table>
+
+  <h2>Qué viene después (fase 2, facturable aparte)</h2>
+  <ul>
+    <li>Tarifas por ordenanza fiscal versionada, con colectivos y empadronamiento acreditado.</li>
+    <li>Pasarela de pago de la entidad colaboradora (Redsys) y carta de pago para autoliquidación.</li>
+    <li>Inscripciones con plazo, renovación de plaza y sorteo público verificable con acta.</li>
+    <li>Antiacaparamiento, cesiones de temporada a clubes y política de lluvia.</li>
+    <li>Control de acceso físico (torno) — la lógica ya está construida y demostrada en la demo.</li>
+    <li>ENS categoría básica, notificaciones fehacientes y datos abiertos.</li>
+  </ul>
+
+  <h2>Qué se pide hoy</h2>
+  <p>Tres cosas, ninguna es un contrato: la <strong>ordenanza fiscal vigente</strong> con sus tarifas, <strong>media hora con el técnico de deportes</strong>, y un <strong>piloto de un trimestre con una sola instalación</strong>.</p>
+
+  <p class="pie-pagina">Prototipo de demostración desarrollado por [PENDIENTE: nombre]. No es un servicio oficial del Ayuntamiento de Medina Sidonia. Datos simulados. · [PENDIENTE: teléfono y correo de contacto] · Demo: [PENDIENTE: URL estable]</p>
+</div>
+</body>
+</html>

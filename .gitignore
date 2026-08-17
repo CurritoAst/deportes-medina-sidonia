@@ -1,0 +1,22 @@
+# Dependencias (no hay, pero por si acaso)
+node_modules/
+
+# Estado en tiempo de ejecución: lo crea el servidor y lo resiembra el navegador
+data/estado.json
+
+# Caché local del servicio de acceso (se regenera al sincronizar)
+acceso/cache-socios.json
+
+# Artefactos de desarrollo / pruebas
+.playwright-mcp/
+*.log
+*.png
+!icono-180.png
+
+# Imagen de la Raspberry y copias (NUNCA subir: es enorme y contiene secretos)
+*.img
+torno_backup*
+
+# Sistema
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+{
+  "name": "deportes-medina-sidonia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de reservas deportivas municipal — Complejo Deportivo Prado de la Feria (Medina Sidonia). Node puro, sin dependencias.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "acceso": "node acceso/acceso.js",
+    "lector-mock": "node acceso/lector-mock.js"
+  },
+  "license": "UNLICENSED"
+}

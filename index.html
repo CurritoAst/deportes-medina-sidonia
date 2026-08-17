@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' file: data:; connect-src 'self' file: https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="Reserva pistas deportivas e inscríbete en las actividades del Complejo Deportivo Prado de la Feria de Medina Sidonia en 3 sencillos pasos.">
+  <title>Deportes Medina Sidonia · Reservas del Complejo Prado de la Feria</title>
+  <meta name="theme-color" content="#1E3A5F">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Deportes MS">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231E3A5F'/%3E%3Cpath d='M8 24v-8a8 8 0 0 1 16 0v8h-4v-8a4 4 0 0 0-8 0v8z' fill='%23F7F8FA'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- ============ Sprite de iconos SVG (trazo consistente 1.8, estilo Lucide) ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-arco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20v-7a8 8 0 0 1 16 0v7"/><path d="M2 20h20"/><path d="M8.5 20v-6.5a3.5 3.5 0 0 1 7 0V20"/>
+  </symbol>
+  <symbol id="i-padel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10" cy="9" r="6.2"/><path d="m14.5 13.5 5 5"/><path d="M8 7.2h.01M12 7.2h.01M8 10.8h.01M12 10.8h.01"/>
+  </symbol>
+  <symbol id="i-tenis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M5 5.5c3 2.5 3 10.5 0 13M19 5.5c-3 2.5-3 10.5 0 13"/>
+  </symbol>
+  <symbol id="i-futbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="m12 7.5 4 3-1.5 4.6h-5L8 10.5z"/><path d="M12 3v4.5M20.6 9.6l-4.6.9M17.8 18.6 14.5 15M6.2 18.6 9.5 15M3.4 9.6l4.6.9"/>
+  </symbol>
+  <symbol id="i-pabellon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 20V11l9-6 9 6v9"/><path d="M3 20h18"/><path d="M8 20v-5h8v5"/>
+  </symbol>
+  <symbol id="i-piscina" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 17c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/><path d="M2 21c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/><path d="M8 13V5a2 2 0 0 1 4 0"/><path d="M14 13V5a2 2 0 0 1 4 0"/><path d="M8 9h6"/>
+  </symbol>
+  <symbol id="i-gimnasio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+  </symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>
+  </symbol>
+  <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+  </symbol>
+  <symbol id="i-usuario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5"/>
+  </symbol>
+  <symbol id="i-personas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 15.2c1.8.8 3 2.3 3 4.8"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m4.5 12.5 5 5 10-11"/>
+  </symbol>
+  <symbol id="i-chevron-d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m9 5 7 7-7 7"/>
+  </symbol>
+  <symbol id="i-chevron-i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m15 5-7 7 7 7"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 6l12 12M18 6 6 18"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+  </symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>
+  </symbol>
+  <symbol id="i-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5"/>
+  </symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/>
+  </symbol>
+  <symbol id="i-cola" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="5" cy="7" r="2.4"/><circle cx="12" cy="7" r="2.4"/><circle cx="19" cy="7" r="2.4"/><path d="M2.5 20c0-2.8 1.1-4.6 2.5-4.6S7.5 17.2 7.5 20M9.5 20c0-2.8 1.1-4.6 2.5-4.6s2.5 1.8 2.5 4.6M16.5 20c0-2.8 1.1-4.6 2.5-4.6S21.5 17.2 21.5 20"/>
+  </symbol>
+  <symbol id="i-mapa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>
+  </symbol>
+  <symbol id="i-telefono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>
+  </symbol>
+  <symbol id="i-correo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>
+  </symbol>
+  <symbol id="i-euro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6.5A7.5 7.5 0 1 0 18 17.5"/><path d="M4 10.5h9M4 13.5h9"/>
+  </symbol>
+  <symbol id="i-flash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z"/>
+  </symbol>
+  <symbol id="i-campana" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 9.5a6 6 0 0 1 12 0c0 4 1.5 5.5 2.5 6.5H3.5c1-1 2.5-2.5 2.5-6.5"/><path d="M10 19.5a2 2 0 0 0 4 0"/>
+  </symbol>
+  <symbol id="i-buscar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>
+  </symbol>
+  <symbol id="i-descargar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v11M7.5 10 12 14.5 16.5 10"/><path d="M4 20h16"/>
+  </symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v3a2.5 2.5 0 0 0 0 5v3a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v-3a2.5 2.5 0 0 0 0-5z" transform="rotate(0 12 12)"/><path d="M14 6v12" stroke-dasharray="2.6 2.6"/>
+  </symbol>
+</svg>
+
+<a class="salto" href="#contenido">Saltar al contenido principal</a>
+
+<!-- ============ Cabecera ============ -->
+<header class="cabecera">
+  <div class="cabecera__inner contenedor">
+    <a class="marca" href="#/" aria-label="Deportes Medina Sidonia, ir al inicio">
+      <span class="marca__sello" aria-hidden="true">
+        <svg width="26" height="26"><use href="#i-arco"/></svg>
+      </span>
+      <span class="marca__texto">
+        <strong>Deportes · Medina Sidonia</strong>
+        <small>Complejo Prado de la Feria</small>
+      </span>
+    </a>
+    <nav class="nav-sup" aria-label="Navegación principal">
+      <a href="#/" data-ruta="inicio">Inicio</a>
+      <a href="#/reservar" data-ruta="reservar">Reservar pista</a>
+      <a href="#/clases" data-ruta="clases">Clases</a>
+      <a href="#/mis-reservas" data-ruta="mis-reservas">Mis reservas</a>
+    </nav>
+    <div class="campana-envoltura">
+      <button class="campana" type="button" id="campana" hidden aria-expanded="false" aria-controls="campana-panel" aria-label="Notificaciones">
+        <svg width="20" height="20" aria-hidden="true"><use href="#i-campana"/></svg>
+        <span class="campana__badge" id="campana-badge" hidden aria-hidden="true"></span>
+      </button>
+      <div class="campana-panel" id="campana-panel" hidden aria-label="Notificaciones">
+        <h2 class="etiqueta-grupo">Notificaciones</h2>
+        <div id="campana-lista"><!-- JS --></div>
+      </div>
+    </div>
+    <a class="chip-usuario" href="#/acceso" id="chip-usuario" data-ruta="perfil">
+      <svg width="18" height="18" aria-hidden="true"><use href="#i-usuario"/></svg>
+      <span id="chip-usuario-texto">Acceder</span>
+    </a>
+  </div>
+</header>
+
+<main id="contenido">
+
+  <!-- ============ Vista: Inicio ============ -->
+  <section class="vista" id="vista-inicio" aria-labelledby="titulo-inicio" hidden>
+    <div class="hero">
+      <div class="contenedor hero__grid">
+        <div class="hero__texto">
+          <p class="hero__pretitulo">Servicio municipal de deportes</p>
+          <h1 id="titulo-inicio">Tu pista, <em>en tres pasos</em> y sin colas de mostrador.</h1>
+          <p class="hero__sub">Reserva pádel, tenis, fútbol 7, pabellón, salas o gimnasio del Complejo Deportivo Prado de la Feria. E inscríbete online en las clases dirigidas — y si están llenas, guarda tu turno en la lista de espera.</p>
+          <div class="hero__acciones">
+            <a class="boton boton--primario boton--grande" href="#/reservar">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-calendario"/></svg>
+              Reservar una pista
+            </a>
+            <a class="boton boton--secundario boton--grande" href="#/clases">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-personas"/></svg>
+              Ver clases dirigidas
+            </a>
+          </div>
+          <ul class="hero__datos" aria-label="Datos del servicio">
+            <li><strong>6</strong> instalaciones</li>
+            <li><strong>10</strong> actividades dirigidas</li>
+            <li id="dato-aforo"><strong id="dato-aforo-cifra">–</strong> <span id="dato-aforo-texto">aforo del gimnasio ahora</span></li>
+          </ul>
+        </div>
+        <div class="hero__visual" aria-hidden="true">
+          <div class="arco">
+            <svg class="arco__escena" viewBox="0 0 400 460" preserveAspectRatio="xMidYMax slice" role="presentation">
+              <defs>
+                <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#EAF1F9"/><stop offset="1" stop-color="#D9E5F2"/>
+                </linearGradient>
+              </defs>
+              <rect width="400" height="460" fill="url(#cielo)"/>
+              <circle cx="200" cy="150" r="58" fill="#E0A32E"/>
+              <circle cx="200" cy="150" r="78" fill="none" stroke="#E0A32E" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 10"/>
+              <!-- colinas -->
+              <path d="M0 330 Q100 290 200 322 T400 315 V460 H0 Z" fill="#DCE3EC"/>
+              <path d="M0 360 Q120 322 240 352 T400 348 V460 H0 Z" fill="#C3CFDE"/>
+              <!-- caserío blanco -->
+              <g fill="#FFFFFF">
+                <rect x="52" y="292" width="52" height="70" rx="2"/>
+                <rect x="112" y="272" width="44" height="90" rx="2"/>
+                <rect x="164" y="296" width="58" height="66" rx="2"/>
+                <rect x="230" y="266" width="40" height="96" rx="2"/>
+                <rect x="278" y="290" width="62" height="72" rx="2"/>
+                <path d="M112 272h44l-22-16z"/>
+                <path d="M230 266h40l-20-15z"/>
+              </g>
+              <g fill="#1E3A5F" opacity=".85">
+                <rect x="70" y="312" width="12" height="20" rx="6"/>
+                <rect x="128" y="292" width="12" height="20" rx="6"/>
+                <rect x="186" y="314" width="12" height="20" rx="6"/>
+                <rect x="244" y="286" width="12" height="20" rx="6"/>
+                <rect x="298" y="310" width="12" height="20" rx="6"/>
+              </g>
+              <!-- campanario -->
+              <g>
+                <rect x="342" y="238" width="34" height="124" rx="2" fill="#FFFFFF"/>
+                <path d="M342 238h34l-17-22z" fill="#C75B3E"/>
+                <rect x="352" y="252" width="14" height="22" rx="7" fill="#1E3A5F" opacity=".85"/>
+              </g>
+              <!-- suelo albero -->
+              <path d="M0 402 Q200 380 400 402 V460 H0 Z" fill="#C75B3E" opacity=".9"/>
+              <path d="M0 420 Q200 400 400 420 V460 H0 Z" fill="#A64A2E"/>
+            </svg>
+          </div>
+          <div class="hero__tarjeta">
+            <svg width="22" height="22" class="hero__tarjeta-icono"><use href="#i-check"/></svg>
+            <div><strong>Pista reservada</strong><span>Pádel 1 · mañana · 19:30</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="franja-arena">
+      <div class="contenedor buscador" aria-labelledby="titulo-buscador">
+        <div class="buscador__texto">
+          <h2 id="titulo-buscador">¿Qué hay libre?</h2>
+          <p>Elige día y hora y te enseñamos todos los huecos del complejo.</p>
+        </div>
+        <form class="buscador__controles" id="form-buscador">
+          <div class="buscador__campo">
+            <label for="buscador-dia">Día</label>
+            <select id="buscador-dia"><!-- JS --></select>
+          </div>
+          <div class="buscador__campo">
+            <label for="buscador-hora">A partir de las</label>
+            <select id="buscador-hora"><!-- JS --></select>
+          </div>
+          <button class="boton boton--primario" type="submit">
+            <svg width="18" height="18" aria-hidden="true"><use href="#i-buscar"/></svg> Buscar hueco
+          </button>
+        </form>
+        <div class="buscador__resultados" id="buscador-resultados" aria-live="polite"><!-- JS --></div>
+      </div>
+    </div>
+
+    <div class="contenedor seccion" aria-labelledby="titulo-pasos">
+      <h2 id="titulo-pasos" class="seccion__titulo">Así de fácil</h2>
+      <p class="seccion__sub">Tres pasos. Menos de un minuto. Sin registrarte para mirar horarios.</p>
+      <ol class="pasos-como">
+        <li>
+          <span class="pasos-como__num" aria-hidden="true">1</span>
+          <h3>Elige instalación</h3>
+          <p>Pádel, tenis, fútbol 7, pabellón, salas o gimnasio.</p>
+        </li>
+        <li>
+          <span class="pasos-como__num" aria-hidden="true">2</span>
+          <h3>Elige día y hora</h3>
+          <p>Disponibilidad real de los próximos 14 días, de un vistazo.</p>
+        </li>
+        <li>
+          <span class="pasos-como__num" aria-hidden="true">3</span>
+          <h3>Confirma</h3>
+          <p>Tus datos, tu localizador y a jugar. Pagas al llegar o con bono.</p>
+        </li>
+      </ol>
+    </div>
+
+    <div class="franja-arena">
+      <div class="contenedor seccion" aria-labelledby="titulo-instalaciones">
+        <div class="seccion__cabecera">
+          <div>
+            <h2 id="titulo-instalaciones" class="seccion__titulo">Instalaciones</h2>
+            <p class="seccion__sub">Complejo Deportivo Prado de la Feria · Avda. del Deporte s/n</p>
+          </div>
+          <a class="enlace-flecha" href="#/reservar">Reservar <svg width="16" height="16" aria-hidden="true"><use href="#i-chevron-d"/></svg></a>
+        </div>
+        <div class="tarjetas-instalacion" id="inicio-instalaciones"><!-- JS --></div>
+      </div>
+    </div>
+
+    <div class="contenedor seccion" aria-labelledby="titulo-clases-home">
+      <div class="seccion__cabecera">
+        <div>
+          <h2 id="titulo-clases-home" class="seccion__titulo">Clases dirigidas</h2>
+          <p class="seccion__sub">Inscripción online. Si está llena, ponte a la cola y te avisamos.</p>
+        </div>
+        <a class="enlace-flecha" href="#/clases">Ver todas <svg width="16" height="16" aria-hidden="true"><use href="#i-chevron-d"/></svg></a>
+      </div>
+      <div class="tarjetas-clase" id="inicio-clases"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Reservar (3 pasos) ============ -->
+  <section class="vista" id="vista-reservar" aria-labelledby="titulo-reservar" hidden>
+    <div class="contenedor seccion--corta">
+      <h1 id="titulo-reservar" class="titulo-vista">Reservar una pista</h1>
+
+      <ol class="indicador-pasos" id="indicador-pasos" aria-label="Progreso de la reserva">
+        <li data-paso="1"><span class="indicador-pasos__punto">1</span><span class="indicador-pasos__etiqueta">Elige tu hueco</span></li>
+        <li data-paso="2"><span class="indicador-pasos__punto">2</span><span class="indicador-pasos__etiqueta">Confirma</span></li>
+      </ol>
+
+      <!-- Paso 1: la parrilla -->
+      <div id="paso-parrilla" class="paso" hidden>
+        <h2 class="subtitulo-paso">Elige el día, toca un deporte para ver sus horarios y pulsa un hueco libre.</h2>
+
+        <div class="campo-grupo">
+          <h2 class="etiqueta-grupo" id="etiqueta-dias">Día</h2>
+          <div class="tira-dias" id="tira-dias" role="group" aria-labelledby="etiqueta-dias"><!-- JS --></div>
+        </div>
+
+        <p class="leyenda-slots">
+          <span class="leyenda-slots__item"><i class="muestra muestra--libre"></i> Libre</span>
+          <span class="leyenda-slots__item"><i class="muestra muestra--ocupado"></i> Ocupada</span>
+          <span class="leyenda-slots__item"><i class="muestra muestra--tuya"></i> Tuya</span>
+          <span class="leyenda-slots__item"><i class="muestra muestra--bloqueo"></i> Bloqueada</span>
+          <span class="leyenda-slots__item"><span class="punto-luz" aria-hidden="true"></span> Con luz (suplemento visible)</span>
+        </p>
+
+        <div class="parrilla-secciones" id="parrilla"><!-- JS --></div>
+      </div>
+
+      <!-- Paso 2 -->
+      <div id="paso-confirmar" class="paso" hidden>
+        <button class="volver" type="button" data-accion="volver-paso-2">
+          <svg width="16" height="16" aria-hidden="true"><use href="#i-chevron-i"/></svg> Cambiar hueco
+        </button>
+        <div class="confirmar__grid">
+          <form id="form-reserva" class="formulario" novalidate>
+            <h2 class="etiqueta-grupo">Tus datos</h2>
+            <p class="paso__ayuda">Solo los necesitamos para el justificante. Sin crear cuenta.</p>
+            <div class="campo">
+              <label for="campo-nombre">Nombre y apellidos <span class="req" aria-hidden="true">*</span></label>
+              <input id="campo-nombre" name="nombre" type="text" autocomplete="name" required minlength="3" placeholder="Ej.: María Sánchez Ruiz" aria-describedby="error-nombre">
+              <p class="campo__error" id="error-nombre" role="alert" hidden></p>
+            </div>
+            <div class="campo">
+              <label for="campo-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+              <input id="campo-email" name="email" type="email" autocomplete="email" required placeholder="Ej.: maria@correo.es" aria-describedby="ayuda-email error-email">
+              <p class="campo__ayuda" id="ayuda-email">Te enviaremos aquí el justificante.</p>
+              <p class="campo__error" id="error-email" role="alert" hidden></p>
+            </div>
+            <div class="campo">
+              <label for="campo-telefono">Teléfono móvil <span class="req" aria-hidden="true">*</span></label>
+              <input id="campo-telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required placeholder="Ej.: 600 123 456" aria-describedby="error-telefono">
+              <p class="campo__error" id="error-telefono" role="alert" hidden></p>
+            </div>
+            <div class="campo campo--check">
+              <input id="campo-normas" name="normas" type="checkbox" required aria-describedby="error-normas">
+              <label for="campo-normas">He leído las <a href="#/" data-noop>normas de uso de las instalaciones</a> y la política de cancelación (gratis hasta 24 h antes).</label>
+              <p class="campo__error" id="error-normas" role="alert" hidden></p>
+            </div>
+            <button class="boton boton--primario boton--grande formulario__enviar" type="submit" id="boton-confirmar">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg>
+              Confirmar reserva
+            </button>
+          </form>
+          <aside class="resumen-lateral" aria-labelledby="titulo-resumen">
+            <h2 id="titulo-resumen">Resumen</h2>
+            <div id="resumen-final"><!-- JS --></div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- Éxito -->
+      <div id="paso-exito" class="paso paso--exito" hidden>
+        <div class="exito" role="status">
+          <span class="exito__sello" aria-hidden="true">
+            <svg width="34" height="34"><use href="#i-check"/></svg>
+          </span>
+          <h2>¡Reserva confirmada!</h2>
+          <p class="exito__sub">Este es tu justificante de liquidación. Guarda el localizador: también lo tienes en <a href="#/mis-reservas">Mis reservas</a>.</p>
+          <div class="exito__ticket" id="exito-ticket"><!-- JS --></div>
+          <div class="exito__acciones">
+            <a class="boton boton--primario" href="#/mis-reservas">Ver mis reservas</a>
+            <button class="boton boton--secundario" type="button" data-accion="ics-ultima">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-descargar"/></svg> Añadir al calendario
+            </button>
+            <a class="boton boton--secundario" href="#/reservar" data-accion="nueva-reserva">Hacer otra reserva</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Clases ============ -->
+  <section class="vista" id="vista-clases" aria-labelledby="titulo-clases" hidden>
+    <div class="contenedor seccion--corta">
+      <h1 id="titulo-clases" class="titulo-vista">Clases dirigidas</h1>
+      <p class="paso__ayuda">Inscripción mensual online. Si la clase está completa, únete a la lista de espera: cuando quede una plaza libre, pasa la siguiente persona de la cola.</p>
+      <div class="chips chips--filtros" id="filtros-clases" role="group" aria-label="Filtrar clases por espacio"><!-- JS --></div>
+      <h2 class="visualmente-oculto">Listado de clases</h2>
+      <div class="tarjetas-clase" id="grid-clases"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Mis reservas ============ -->
+  <section class="vista" id="vista-mis" aria-labelledby="titulo-mis" hidden>
+    <div class="contenedor seccion--corta">
+      <h1 id="titulo-mis" class="titulo-vista">Mis reservas</h1>
+      <div class="mis-bloque">
+        <h2 class="etiqueta-grupo">Pistas</h2>
+        <div id="mis-pistas"><!-- JS --></div>
+      </div>
+      <div class="mis-bloque">
+        <h2 class="etiqueta-grupo">Clases e inscripciones</h2>
+        <div id="mis-clases"><!-- JS --></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Acceso (entrar / crear cuenta) ============ -->
+  <section class="vista" id="vista-acceso" aria-labelledby="titulo-acceso" hidden>
+    <div class="contenedor seccion--corta">
+      <div class="acceso">
+        <h1 id="titulo-acceso" class="titulo-vista">Tu cuenta deportiva</h1>
+        <p class="paso__ayuda" id="acceso-motivo">Con tu cuenta puedes ver la disponibilidad de las pistas, reservar e inscribirte en clases.</p>
+
+        <div class="acceso__pestanas" role="tablist" aria-label="Entrar o crear cuenta">
+          <button class="acceso__pestana" type="button" role="tab" id="pestana-entrar" aria-selected="true" aria-controls="panel-entrar">Iniciar sesión</button>
+          <button class="acceso__pestana" type="button" role="tab" id="pestana-registro" aria-selected="false" aria-controls="panel-registro">Crear cuenta</button>
+        </div>
+
+        <!-- Entrar -->
+        <form class="formulario acceso__panel" id="panel-entrar" role="tabpanel" aria-labelledby="pestana-entrar" novalidate>
+          <div class="campo">
+            <label for="entrar-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+            <input id="entrar-email" name="email" type="email" autocomplete="email" required placeholder="Ej.: maria@correo.es" aria-describedby="error-entrar-email">
+            <p class="campo__error" id="error-entrar-email" role="alert" hidden></p>
+          </div>
+          <div class="campo">
+            <label for="entrar-clave">Contraseña <span class="req" aria-hidden="true">*</span></label>
+            <div class="campo-clave">
+              <input id="entrar-clave" name="clave" type="password" autocomplete="current-password" required aria-describedby="error-entrar-clave">
+              <button class="ver-clave" type="button" data-ver-clave="entrar-clave" aria-pressed="false">Ver</button>
+            </div>
+            <p class="campo__error" id="error-entrar-clave" role="alert" hidden></p>
+          </div>
+          <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Entrar</button>
+          <p class="acceso__nota">Cuentas de prueba: <code>carmen@correo.es</code> / <code>Vecina2026</code></p>
+        </form>
+
+        <!-- Crear cuenta -->
+        <form class="formulario acceso__panel" id="panel-registro" role="tabpanel" aria-labelledby="pestana-registro" novalidate hidden>
+          <div class="campo">
+            <label for="registro-nombre">Nombre y apellidos <span class="req" aria-hidden="true">*</span></label>
+            <input id="registro-nombre" name="nombre" type="text" autocomplete="name" required minlength="3" placeholder="Ej.: María Sánchez Ruiz" aria-describedby="error-registro-nombre">
+            <p class="campo__error" id="error-registro-nombre" role="alert" hidden></p>
+          </div>
+          <div class="campo">
+            <label for="registro-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+            <input id="registro-email" name="email" type="email" autocomplete="email" required placeholder="Ej.: maria@correo.es" aria-describedby="error-registro-email">
+            <p class="campo__error" id="error-registro-email" role="alert" hidden></p>
+          </div>
+          <div class="campo">
+            <label for="registro-telefono">Teléfono móvil <span class="req" aria-hidden="true">*</span></label>
+            <input id="registro-telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required placeholder="Ej.: 600 123 456" aria-describedby="error-registro-telefono">
+            <p class="campo__error" id="error-registro-telefono" role="alert" hidden></p>
+          </div>
+          <div class="campo">
+            <label for="registro-clave">Contraseña <span class="req" aria-hidden="true">*</span></label>
+            <div class="campo-clave">
+              <input id="registro-clave" name="clave" type="password" autocomplete="new-password" required minlength="8" aria-describedby="ayuda-registro-clave error-registro-clave">
+              <button class="ver-clave" type="button" data-ver-clave="registro-clave" aria-pressed="false">Ver</button>
+            </div>
+            <p class="campo__ayuda" id="ayuda-registro-clave">Mínimo 8 caracteres.</p>
+            <p class="campo__error" id="error-registro-clave" role="alert" hidden></p>
+          </div>
+          <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Crear cuenta</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Panel de monitor ============ -->
+  <section class="vista" id="vista-monitor" aria-labelledby="titulo-monitor" hidden>
+    <div class="contenedor seccion--corta">
+      <h1 id="titulo-monitor" class="titulo-vista">Mis clases</h1>
+      <p class="paso__ayuda">Las actividades que impartes, con sus inscritos y sus listas de espera, siempre al día.</p>
+      <div id="monitor-clases"><!-- JS --></div>
+    </div>
+  </section>
+
+  <!-- ============ Vista: Mi perfil ============ -->
+  <section class="vista" id="vista-perfil" aria-labelledby="titulo-perfil" hidden>
+    <div class="contenedor seccion--corta">
+      <div class="perfil__cabecera">
+        <span class="perfil__avatar" id="perfil-avatar" aria-hidden="true"></span>
+        <div class="perfil__quien">
+          <h1 id="titulo-perfil" class="titulo-vista">Mi perfil</h1>
+          <p id="perfil-email" class="paso__ayuda"></p>
+        </div>
+        <button class="boton boton--secundario" type="button" id="boton-salir">Cerrar sesión</button>
+      </div>
+
+      <div class="perfil__grid">
+        <!-- Carnet y abono -->
+        <section class="perfil__bloque" aria-labelledby="titulo-carnet">
+          <h2 id="titulo-carnet" class="etiqueta-grupo">Carnet deportivo y abono del gimnasio</h2>
+          <div id="perfil-abono"><!-- JS --></div>
+        </section>
+
+        <!-- Datos personales -->
+        <section class="perfil__bloque" aria-labelledby="titulo-datos">
+          <h2 id="titulo-datos" class="etiqueta-grupo">Mis datos</h2>
+          <form class="formulario" id="form-perfil" novalidate>
+            <div class="campo">
+              <label for="perfil-nombre">Nombre y apellidos</label>
+              <input id="perfil-nombre" name="nombre" type="text" autocomplete="name" minlength="3" aria-describedby="error-perfil-nombre">
+              <p class="campo__error" id="error-perfil-nombre" role="alert" hidden></p>
+            </div>
+            <div class="campo">
+              <label for="perfil-telefono">Teléfono móvil</label>
+              <input id="perfil-telefono" name="telefono" type="tel" autocomplete="tel" inputmode="tel" aria-describedby="error-perfil-telefono">
+              <p class="campo__error" id="error-perfil-telefono" role="alert" hidden></p>
+            </div>
+            <button class="boton boton--primario" type="submit">Guardar cambios</button>
+          </form>
+
+          <h2 class="etiqueta-grupo" style="margin-top:28px">Cambiar contraseña</h2>
+          <form class="formulario" id="form-clave" novalidate>
+            <div class="campo">
+              <label for="clave-actual">Contraseña actual</label>
+              <input id="clave-actual" name="actual" type="password" autocomplete="current-password" required aria-describedby="error-clave-actual">
+              <p class="campo__error" id="error-clave-actual" role="alert" hidden></p>
+            </div>
+            <div class="campo">
+              <label for="clave-nueva">Nueva contraseña</label>
+              <input id="clave-nueva" name="nueva" type="password" autocomplete="new-password" required minlength="8" aria-describedby="ayuda-clave-nueva error-clave-nueva">
+              <p class="campo__ayuda" id="ayuda-clave-nueva">Mínimo 8 caracteres.</p>
+              <p class="campo__error" id="error-clave-nueva" role="alert" hidden></p>
+            </div>
+            <button class="boton boton--secundario" type="submit">Actualizar contraseña</button>
+          </form>
+        </section>
+
+        <!-- Accesos -->
+        <section class="perfil__bloque perfil__bloque--ancho" aria-labelledby="titulo-accesos">
+          <h2 id="titulo-accesos" class="etiqueta-grupo">Mis últimos accesos al gimnasio</h2>
+          <div id="perfil-accesos"><!-- JS --></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ Navegación inferior (móvil) ============ -->
+<nav class="nav-inf" aria-label="Navegación principal móvil">
+  <a href="#/" data-ruta="inicio"><svg width="22" height="22" aria-hidden="true"><use href="#i-arco"/></svg><span>Inicio</span></a>
+  <a href="#/reservar" data-ruta="reservar"><svg width="22" height="22" aria-hidden="true"><use href="#i-calendario"/></svg><span>Reservar</span></a>
+  <a href="#/clases" data-ruta="clases"><svg width="22" height="22" aria-hidden="true"><use href="#i-personas"/></svg><span>Clases</span></a>
+  <a href="#/mis-reservas" data-ruta="mis-reservas"><svg width="22" height="22" aria-hidden="true"><use href="#i-lista"/></svg><span>Mis reservas</span></a>
+  <a href="#/acceso" data-ruta="perfil" id="nav-inf-perfil"><svg width="22" height="22" aria-hidden="true"><use href="#i-usuario"/></svg><span>Perfil</span></a>
+</nav>
+
+<!-- ============ Pie ============ -->
+<footer class="pie">
+  <div class="contenedor pie__grid">
+    <div>
+      <p class="pie__marca"><strong>Deportes · Medina Sidonia</strong></p>
+      <p>Delegación Municipal de Deportes<br>Complejo Deportivo Prado de la Feria</p>
+    </div>
+    <div>
+      <h2>Contacto</h2>
+      <ul class="pie__lista">
+        <li><svg width="16" height="16" aria-hidden="true"><use href="#i-mapa"/></svg> Avda. del Deporte s/n, 11170 Medina Sidonia (Cádiz)</li>
+        <li><svg width="16" height="16" aria-hidden="true"><use href="#i-telefono"/></svg> 956 41 00 05</li>
+        <li><svg width="16" height="16" aria-hidden="true"><use href="#i-correo"/></svg> deportes@medinasidonia.es</li>
+      </ul>
+    </div>
+    <div>
+      <h2>Horario del complejo</h2>
+      <ul class="pie__lista">
+        <li><svg width="16" height="16" aria-hidden="true"><use href="#i-reloj"/></svg> Lunes a viernes: 9:00 – 23:00</li>
+        <li><svg width="16" height="16" aria-hidden="true"><use href="#i-reloj"/></svg> Fines de semana: 9:00 – 21:00</li>
+      </ul>
+    </div>
+  </div>
+  <div class="contenedor pie__legal">
+    <p>Prototipo de demostración desarrollado por [PENDIENTE: nombre del autor]. No es un servicio oficial del Ayuntamiento de Medina Sidonia.</p>
+    <p><a href="legal.html" class="pie__enlace-admin">Aviso legal y privacidad</a> · <a href="accesibilidad.html" class="pie__enlace-admin">Declaración de accesibilidad</a> · <a href="admin.html" class="pie__enlace-admin">Acceso administración</a></p>
+  </div>
+</footer>
+
+<!-- ============ Diálogo de confirmación ============ -->
+<div class="dialogo-fondo" id="dialogo-fondo" hidden>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+    <h2 id="dialogo-titulo"><!-- JS --></h2>
+    <p id="dialogo-texto"><!-- JS --></p>
+    <div class="dialogo__acciones">
+      <button class="boton boton--secundario" type="button" id="dialogo-cancelar">Volver</button>
+      <button class="boton boton--peligro" type="button" id="dialogo-aceptar">Sí, cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Avisos (toast) ============ -->
+<div class="avisos" id="avisos" aria-live="polite" aria-atomic="false"></div>
+
+<script src="js/data.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/token.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/app.js"></script>
+<script src="js/demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' file: data:; connect-src 'self' file: https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="robots" content="noindex">
+  <title>Panel de administración · Deportes Medina Sidonia</title>
+  <meta name="theme-color" content="#142A47">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="icono-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23142A47'/%3E%3Cpath d='M8 24v-8a8 8 0 0 1 16 0v8h-4v-8a4 4 0 0 0-8 0v8z' fill='%23F7F8FA'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- Sprite de iconos (subconjunto del principal) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-arco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20v-7a8 8 0 0 1 16 0v7"/><path d="M2 20h20"/><path d="M8.5 20v-6.5a3.5 3.5 0 0 1 7 0V20"/>
+  </symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="8" height="10" rx="2"/><rect x="13" y="3" width="8" height="6" rx="2"/><rect x="13" y="11" width="8" height="10" rx="2"/><rect x="3" y="15" width="8" height="6" rx="2"/>
+  </symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>
+  </symbol>
+  <symbol id="i-personas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 15.2c1.8.8 3 2.3 3 4.8"/>
+  </symbol>
+  <symbol id="i-usuario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6.5 8-6.5s8 2.5 8 6.5"/>
+  </symbol>
+  <symbol id="i-lista" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/>
+  </symbol>
+  <symbol id="i-torno" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 21V5a2 2 0 0 1 2-2h2v18"/><path d="M19 21V9"/><path d="M9 11h10"/><path d="M3 21h18"/>
+  </symbol>
+  <symbol id="i-flash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5z"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m4.5 12.5 5 5 10-11"/>
+  </symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 6l12 12M18 6 6 18"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>
+  </symbol>
+  <symbol id="i-cola" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="5" cy="7" r="2.4"/><circle cx="12" cy="7" r="2.4"/><circle cx="19" cy="7" r="2.4"/><path d="M2.5 20c0-2.8 1.1-4.6 2.5-4.6S7.5 17.2 7.5 20M9.5 20c0-2.8 1.1-4.6 2.5-4.6s2.5 1.8 2.5 4.6M16.5 20c0-2.8 1.1-4.6 2.5-4.6S21.5 17.2 21.5 20"/>
+  </symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14h1M14 20h1M18 18h3v3h-3z"/>
+  </symbol>
+  <symbol id="i-nfc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 8.5a7 7 0 0 1 0 7M9.5 6.5a10 10 0 0 1 0 11M13 4.5a13 13 0 0 1 0 15"/><circle cx="4" cy="12" r="1.4"/>
+  </symbol>
+  <symbol id="i-valla" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 21V8l2-3 2 3v13M16 21V8l2-3 2 3v13M4 12h16M4 17h16"/>
+  </symbol>
+  <symbol id="i-grafica" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="12" y="8" width="3" height="10" rx="1"/><rect x="17" y="5" width="3" height="13" rx="1"/>
+  </symbol>
+  <symbol id="i-euro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 6.5A7.5 7.5 0 1 0 18 17.5"/><path d="M4 10.5h9M4 13.5h9"/>
+  </symbol>
+</svg>
+
+<a class="salto" href="#contenido-admin">Saltar al contenido principal</a>
+
+<header class="cabecera">
+  <div class="cabecera__inner contenedor">
+    <a class="marca" href="index.html" aria-label="Volver a la web de reservas">
+      <span class="marca__sello" aria-hidden="true">
+        <svg width="26" height="26"><use href="#i-arco"/></svg>
+      </span>
+      <span class="marca__texto">
+        <strong>Deportes · Medina Sidonia</strong>
+        <small>Panel de administración</small>
+      </span>
+    </a>
+    <a class="chip-usuario" href="index.html">
+      <svg width="18" height="18" aria-hidden="true"><use href="#i-arco"/></svg>
+      <span>Web de reservas</span>
+    </a>
+    <button class="boton boton--secundario" type="button" id="admin-salir" hidden>Cerrar sesión</button>
+  </div>
+</header>
+
+<main id="contenido-admin" class="contenedor seccion--corta">
+
+  <!-- Puerta de entrada -->
+  <section id="admin-login" aria-labelledby="titulo-admin-login" hidden>
+    <div class="acceso">
+      <h1 id="titulo-admin-login" class="titulo-vista">Acceso restringido</h1>
+      <p class="paso__ayuda">Este panel es solo para el personal de la Delegación de Deportes.</p>
+      <form class="formulario" id="form-admin-login" novalidate>
+        <div class="campo">
+          <label for="admin-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+          <input id="admin-email" name="email" type="email" autocomplete="email" required aria-describedby="error-admin-email">
+          <p class="campo__error" id="error-admin-email" role="alert" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="admin-clave">Contraseña <span class="req" aria-hidden="true">*</span></label>
+          <div class="campo-clave">
+            <input id="admin-clave" name="clave" type="password" autocomplete="current-password" required aria-describedby="error-admin-clave">
+            <button class="ver-clave" type="button" data-ver-clave="admin-clave" aria-pressed="false">Ver</button>
+          </div>
+          <p class="campo__error" id="error-admin-clave" role="alert" hidden></p>
+        </div>
+        <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Entrar al panel</button>
+        <p class="acceso__nota">Demo: <code>admin@medinasidonia.es</code> / <code>MedinaAdmin2026</code></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Aplicación -->
+  <section id="admin-app" aria-labelledby="titulo-admin" hidden>
+    <h1 id="titulo-admin" class="titulo-vista">Gestión del complejo deportivo</h1>
+    <p class="paso__ayuda" id="admin-hola"></p>
+
+    <div class="admin-cuerpo">
+      <nav class="admin-menu" aria-label="Secciones del panel" id="admin-menu">
+        <button type="button" data-seccion="panel" aria-current="true"><svg width="19" height="19" aria-hidden="true"><use href="#i-panel"/></svg> Panel</button>
+        <button type="button" data-seccion="reservas"><svg width="19" height="19" aria-hidden="true"><use href="#i-calendario"/></svg> Reservas</button>
+        <button type="button" data-seccion="clases"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Clases y colas</button>
+        <button type="button" data-seccion="abonados"><svg width="19" height="19" aria-hidden="true"><use href="#i-usuario"/></svg> Abonados</button>
+        <button type="button" data-seccion="tarifas"><svg width="19" height="19" aria-hidden="true"><use href="#i-euro"/></svg> Tarifas y finanzas</button>
+        <button type="button" data-seccion="instalaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-valla"/></svg> Bloqueos de pista</button>
+        <button type="button" data-seccion="plid"><svg width="19" height="19" aria-hidden="true"><use href="#i-grafica"/></svg> Ocupación · PLID</button>
+        <button type="button" data-seccion="torno"><svg width="19" height="19" aria-hidden="true"><use href="#i-torno"/></svg> Torno de acceso</button>
+        <button type="button" data-seccion="automatizaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-flash"/></svg> Automatización</button>
+      </nav>
+
+      <div>
+        <section class="admin-seccion" id="seccion-panel" aria-label="Resumen general">
+          <div class="kpis" id="admin-kpis"><!-- JS --></div>
+          <h2 class="etiqueta-grupo">Últimas automatizaciones</h2>
+          <ul class="lista-auto" id="admin-auto-resumen"><!-- JS --></ul>
+        </section>
+
+        <section class="admin-seccion" id="seccion-reservas" aria-label="Reservas de pistas" hidden>
+          <div class="admin-seccion__cabecera">
+            <h2 class="etiqueta-grupo">Reservas de vecinos</h2>
+            <button class="boton boton--secundario" type="button" id="csv-reservas">Exportar CSV</button>
+          </div>
+
+          <details class="admin-plegable">
+            <summary>Crear una reserva a nombre de un vecino (p. ej. por teléfono)</summary>
+            <form class="formulario" id="form-reserva-manual" novalidate>
+              <div class="admin-filtros">
+                <label class="admin-filtros__campo admin-filtros__campo--ancho">
+                  <span>Vecino/a</span>
+                  <select id="manual-vecino"><!-- JS --></select>
+                </label>
+                <label class="admin-filtros__campo">
+                  <span>Pista</span>
+                  <select id="manual-pista"><!-- JS --></select>
+                </label>
+                <label class="admin-filtros__campo">
+                  <span>Día</span>
+                  <select id="manual-fecha"><!-- JS --></select>
+                </label>
+                <label class="admin-filtros__campo">
+                  <span>Hora</span>
+                  <select id="manual-hora"><!-- JS --></select>
+                </label>
+              </div>
+              <button class="boton boton--primario" type="submit">Crear reserva y avisar al vecino</button>
+            </form>
+          </details>
+
+          <div id="admin-reservas"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-tarifas" aria-label="Tarifas y finanzas" hidden>
+          <h2 class="etiqueta-grupo">Tarifas y finanzas</h2>
+          <p class="paso__ayuda">Cambia un precio y toda la web lo aplica al momento, también en los demás dispositivos. En producción, estas tarifas se cargarían desde la ordenanza fiscal versionada.</p>
+          <form id="form-tarifas" novalidate>
+            <div id="admin-tarifas"><!-- JS --></div>
+            <button class="boton boton--primario" type="submit" style="margin-top:16px">Guardar tarifas</button>
+          </form>
+        </section>
+
+        <section class="admin-seccion" id="seccion-clases" aria-label="Clases y listas de espera" hidden>
+          <h2 class="etiqueta-grupo">Clases dirigidas y listas de espera</h2>
+          <p class="paso__ayuda">Cuando se libera una plaza, la primera persona de la cola entra y recibe el aviso automáticamente.</p>
+          <div id="admin-clases"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-abonados" aria-label="Abonados del gimnasio" hidden>
+          <div class="admin-seccion__cabecera">
+            <h2 class="etiqueta-grupo">Vecinos y abonos</h2>
+            <button class="boton boton--secundario" type="button" id="csv-abonados">Exportar CSV</button>
+          </div>
+
+          <details class="admin-plegable">
+            <summary>Crear una cuenta nueva</summary>
+            <form class="formulario" id="form-crear-usuario" novalidate>
+              <div class="admin-filtros">
+                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Nombre y apellidos</span><input id="nuevo-nombre" type="text" required minlength="3"></label>
+                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Correo</span><input id="nuevo-email" type="email" required></label>
+                <label class="admin-filtros__campo"><span>Teléfono</span><input id="nuevo-telefono" type="tel"></label>
+                <label class="admin-filtros__campo"><span>Contraseña (mín. 8)</span><input id="nuevo-clave" type="text" required minlength="8"></label>
+                <label class="admin-filtros__campo"><span>Rol</span>
+                  <select id="nuevo-rol"><option value="vecino">Vecino/a</option><option value="monitor">Monitor/a</option><option value="admin">Administración</option></select>
+                </label>
+              </div>
+              <button class="boton boton--primario" type="submit">Crear cuenta</button>
+            </form>
+          </details>
+
+          <div id="editor-usuario" hidden><!-- JS --></div>
+          <div id="admin-abonados"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-instalaciones" aria-label="Bloqueos de pista" hidden>
+          <h2 class="etiqueta-grupo">Ventana de reserva</h2>
+          <p class="paso__ayuda">Con cuánta antelación pueden reservar los vecinos. Ej.: «desde mañana, 2 días» → en lunes solo se abren martes y miércoles; en martes, miércoles y jueves.</p>
+          <form id="form-ventana" novalidate>
+            <div class="admin-filtros">
+              <label class="admin-filtros__campo">
+                <span>Se abre la reserva</span>
+                <select id="ventana-desde">
+                  <option value="0">Desde hoy</option>
+                  <option value="1">Desde mañana</option>
+                  <option value="2">Dentro de 2 días</option>
+                  <option value="3">Dentro de 3 días</option>
+                </select>
+              </label>
+              <label class="admin-filtros__campo">
+                <span>Días abiertos</span>
+                <select id="ventana-dias"><!-- JS --></select>
+              </label>
+              <button class="boton boton--primario" type="submit" style="align-self:flex-end">Guardar ventana</button>
+            </div>
+          </form>
+
+          <h2 class="etiqueta-grupo" style="margin-top:26px">Bloquear una pista</h2>
+          <p class="paso__ayuda">Mantenimiento, competición u obra: la franja desaparece de la parrilla y quien ya tenía reserva recibe el aviso y la devolución de oficio, automáticamente.</p>
+          <form class="formulario" id="form-bloqueo" novalidate>
+            <div class="admin-filtros">
+              <label class="admin-filtros__campo">
+                <span>Pista</span>
+                <select id="bloqueo-pista" required><!-- JS --></select>
+              </label>
+              <label class="admin-filtros__campo">
+                <span>Día</span>
+                <select id="bloqueo-fecha"><!-- JS --></select>
+              </label>
+              <label class="admin-filtros__campo">
+                <span>Desde</span>
+                <select id="bloqueo-desde"><!-- JS --></select>
+              </label>
+              <label class="admin-filtros__campo">
+                <span>Hasta</span>
+                <select id="bloqueo-hasta"><!-- JS --></select>
+              </label>
+            </div>
+            <div class="campo">
+              <label for="bloqueo-motivo">Motivo (lo verá el vecino) <span class="req" aria-hidden="true">*</span></label>
+              <input id="bloqueo-motivo" type="text" required maxlength="60" placeholder="Ej.: mantenimiento del césped" aria-describedby="error-bloqueo-motivo">
+              <p class="campo__error" id="error-bloqueo-motivo" role="alert" hidden></p>
+            </div>
+            <button class="boton boton--primario" type="submit">Bloquear y avisar</button>
+          </form>
+          <h2 class="etiqueta-grupo" style="margin-top:26px">Bloqueos activos</h2>
+          <div id="admin-bloqueos"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-plid" aria-label="Ocupación y datos para el PLID" hidden>
+          <div class="admin-seccion__cabecera">
+            <div>
+              <h2 class="etiqueta-grupo">Ocupación del complejo · datos para el PLID</h2>
+              <p class="paso__ayuda" style="margin:0">Uso real por franja, instalación y día. La evidencia que pide el Plan Local de Instalaciones y Equipamientos Deportivos.</p>
+            </div>
+            <button class="boton boton--secundario" type="button" id="plid-imprimir">Exportar informe (PDF)</button>
+          </div>
+          <div id="admin-plid"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-torno" aria-label="Torno de acceso" hidden>
+          <h2 class="etiqueta-grupo">Torno de la pasarela de acceso</h2>
+          <div class="torno-panel">
+            <div class="torno" id="torno" aria-live="polite">
+              <span class="torno__luz" aria-hidden="true"></span>
+              <div class="torno__cuerpo" aria-hidden="true">
+                <span class="torno__poste torno__poste--izq"></span>
+                <span class="torno__brazo"></span>
+                <span class="torno__poste torno__poste--der"></span>
+              </div>
+              <p class="torno__estado" id="torno-estado">En espera<small>Acerca una pulsera o un QR</small></p>
+            </div>
+            <div class="torno-controles">
+              <div class="campo">
+                <label for="torno-abonado">Simular a un abonado</label>
+                <select id="torno-abonado"><!-- JS --></select>
+              </div>
+              <fieldset class="torno-sentido">
+                <legend class="campo__ayuda" style="margin-bottom:6px">Sentido del paso</legend>
+                <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="entrada" checked> Entrada</label>
+                <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="salida"> Salida</label>
+              </fieldset>
+              <div class="torno-controles__botones">
+                <button class="boton boton--primario" type="button" id="torno-leer-nfc">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-nfc"/></svg> Leer pulsera NFC
+                </button>
+                <button class="boton boton--secundario" type="button" id="torno-leer-qr">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear su QR
+                </button>
+              </div>
+              <div class="campo" style="margin-top:18px">
+                <label for="torno-manual">O pega el contenido de un QR / UID</label>
+                <input id="torno-manual" type="text" placeholder="MSD2|1399878112|58000000|19F69CEE  ·  o un UID: 1399878112" aria-describedby="ayuda-torno-manual">
+                <p class="campo__ayuda" id="ayuda-torno-manual">Acepta un QR dinámico (MSD2|…), un QR legado (MSD|…) o directamente un UID de tarjeta. Sirve para probar carnets caducados o manipulados.</p>
+              </div>
+              <button class="boton boton--secundario" type="button" id="torno-validar-manual">Validar QR pegado</button>
+
+              <div class="torno-camara">
+                <h3 class="etiqueta-grupo" style="margin-top:24px">Lector real con cámara</h3>
+                <p class="campo__ayuda" style="margin-bottom:12px">Enfoca el QR del carnet de un vecino (por ejemplo, desde su móvil) y el torno lo validará.</p>
+                <button class="boton boton--primario" type="button" id="torno-camara-boton">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear con la cámara
+                </button>
+                <div id="torno-camara-zona" hidden>
+                  <video id="torno-video" playsinline muted aria-label="Imagen de la cámara buscando un código QR"></video>
+                  <button class="boton boton--secundario" type="button" id="torno-camara-parar">Detener la cámara</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="admin-seccion__cabecera">
+            <h2 class="etiqueta-grupo">Registro de accesos</h2>
+            <button class="boton boton--secundario" type="button" id="csv-accesos">Exportar CSV</button>
+          </div>
+          <div id="admin-accesos"><!-- JS --></div>
+        </section>
+
+        <section class="admin-seccion" id="seccion-automatizaciones" aria-label="Registro de automatización" hidden>
+          <h2 class="etiqueta-grupo">Todo lo que el sistema ha hecho solo</h2>
+          <p class="paso__ayuda">Altas, renovaciones y caducidades de abonos, avisos de lista de espera y emisión de recibos: sin intervención del personal.</p>
+          <ul class="lista-auto" id="admin-auto"><!-- JS --></ul>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Diálogo de confirmación -->
+<div class="dialogo-fondo" id="dialogo-fondo" hidden>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="dialogo-titulo" aria-describedby="dialogo-texto">
+    <h2 id="dialogo-titulo"><!-- JS --></h2>
+    <p id="dialogo-texto"><!-- JS --></p>
+    <div class="dialogo__acciones">
+      <button class="boton boton--secundario" type="button" id="dialogo-cancelar">Volver</button>
+      <button class="boton boton--peligro" type="button" id="dialogo-aceptar">Sí, continuar</button>
+    </div>
+  </div>
+</div>
+
+<div class="avisos" id="avisos" aria-live="polite" aria-atomic="false"></div>
+
+<script src="js/data.js"></script>
+<script src="js/qr.js"></script>
+<script src="js/token.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/vendor/jsQR.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/demo.js"></script>
+</body>
+</html>
