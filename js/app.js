@@ -531,23 +531,59 @@
      ========================================================================== */
 
 
+  /* Selector de días POR SEMANAS: una semana (Lun–Dom) a la vista, con ‹ › para
+     cambiar de semana. Los días fuera del plazo de reserva salen en gris. */
+  let semanaLunes = null;
+  const lunesDe = (d) => {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // 0 = lunes
+    return x;
+  };
+  const fechaDeClave = (clave) => { const [a, m, dd] = clave.split('-').map(Number); return new Date(a, m - 1, dd); };
+  const mismaFecha = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
   function pintarTiraDias() {
     const ventana = diasReservables();
-    // Si la selección quedó fuera de la ventana (o no existe), va al primer día abierto
-    if (!seleccion.fecha || !ventana.some((v) => v.clave === seleccion.fecha)) {
+    const reservables = new Map(ventana.map((v) => [v.clave, v]));
+    if (!seleccion.fecha || !reservables.has(seleccion.fecha)) {
       seleccion.fecha = ventana[0].clave;
     }
-    $('#tira-dias').innerHTML = ventana.map(({ d, clave, desplazamiento }) => {
-      const nombreDia = desplazamiento === 0 ? 'Hoy'
-        : (desplazamiento === 1 ? 'Mañana' : fmtDiaCorto.format(d).replace('.', ''));
-      return `
-        <button class="dia" type="button" data-dia="${clave}" aria-pressed="${clave === seleccion.fecha}"
-                aria-label="${esc(fechaLegible(clave))}">
-          <span class="dia__semana">${esc(nombreDia)}</span>
-          <span class="dia__num">${d.getDate()}</span>
-          <span class="dia__mes">${esc(fmtMesCorto.format(d).replace('.', ''))}</span>
-        </button>`;
-    }).join('');
+    const primerLunes = lunesDe(ventana[0].d);
+    const ultimoLunes = lunesDe(ventana[ventana.length - 1].d);
+    if (!semanaLunes) semanaLunes = lunesDe(fechaDeClave(seleccion.fecha));
+    if (semanaLunes < primerLunes) semanaLunes = new Date(primerLunes);
+    if (semanaLunes > ultimoLunes) semanaLunes = new Date(ultimoLunes);
+
+    const hoy = new Date();
+    const dias7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(semanaLunes.getFullYear(), semanaLunes.getMonth(), semanaLunes.getDate() + i);
+      const clave = claveDeFecha(d);
+      return { d, clave, disponible: reservables.has(clave), esHoy: mismaFecha(d, hoy) };
+    });
+
+    const fin = dias7[6].d;
+    const mesIni = fmtMesCorto.format(semanaLunes).replace('.', '');
+    const mesFin = fmtMesCorto.format(fin).replace('.', '');
+    const rango = semanaLunes.getMonth() === fin.getMonth()
+      ? `${semanaLunes.getDate()} – ${fin.getDate()} ${mesFin}`
+      : `${semanaLunes.getDate()} ${mesIni} – ${fin.getDate()} ${mesFin}`;
+    const hayAntes = semanaLunes > primerLunes;
+    const hayDespues = semanaLunes < ultimoLunes;
+
+    $('#tira-dias').innerHTML = `
+      <div class="semana-nav">
+        <button class="semana-nav__flecha" type="button" data-semana="-1" ${hayAntes ? '' : 'disabled'} aria-label="Semana anterior">‹</button>
+        <span class="semana-nav__rango">${esc(rango)}</span>
+        <button class="semana-nav__flecha" type="button" data-semana="1" ${hayDespues ? '' : 'disabled'} aria-label="Semana siguiente">›</button>
+      </div>
+      <div class="semana-dias">
+        ${dias7.map(({ d, clave, disponible, esHoy }) => `
+          <button class="dia${esHoy ? ' dia--hoy' : ''}" type="button" data-dia="${clave}" ${disponible ? '' : 'disabled'}
+                  aria-pressed="${clave === seleccion.fecha}" aria-label="${esc(fechaLegible(clave))}">
+            <span class="dia__semana">${esc(fmtDiaCorto.format(d).replace('.', ''))}</span>
+            <span class="dia__num">${d.getDate()}</span>
+          </button>`).join('')}
+      </div>`;
   }
 
   /* Ventana de reserva configurable desde el panel (msd_config, sincronizada):
@@ -665,26 +701,8 @@
       grupoPistas.hidden = true;
     }
 
-    // Tira de días
-    const hoy = new Date();
-    const dias = [];
-    for (let i = 0; i < DIAS_VISIBLES; i++) {
-      const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + i);
-      dias.push(d);
-    }
-    if (!seleccion.fecha) seleccion.fecha = claveDeFecha(hoy);
-
-    $('#tira-dias').innerHTML = dias.map((d, i) => {
-      const clave = claveDeFecha(d);
-      const nombreDia = i === 0 ? 'Hoy' : (i === 1 ? 'Mañana' : fmtDiaCorto.format(d).replace('.', ''));
-      return `
-        <button class="dia" type="button" data-dia="${clave}" aria-pressed="${clave === seleccion.fecha}"
-                aria-label="${esc(fechaLegible(clave))}">
-          <span class="dia__semana">${esc(nombreDia)}</span>
-          <span class="dia__num">${d.getDate()}</span>
-          <span class="dia__mes">${esc(fmtMesCorto.format(d).replace('.', ''))}</span>
-        </button>`;
-    }).join('');
+    // Tira de días (misma vista semanal que la parrilla)
+    pintarTiraDias();
 
     pintarTramos();
   }
@@ -1831,7 +1849,7 @@
      ========================================================================== */
 
   document.addEventListener('click', (ev) => {
-    const objetivo = ev.target.closest('[data-toggle-seccion], [data-celda], [data-inst], [data-pista], [data-dia], [data-hora], [data-accion], [data-filtro], [data-inscribir], [data-cola], [data-baja], [data-cancelar-reserva], [data-noop], [data-hueco-inst], [data-ics], [data-repetir]');
+    const objetivo = ev.target.closest('[data-toggle-seccion], [data-celda], [data-inst], [data-pista], [data-dia], [data-semana], [data-hora], [data-accion], [data-filtro], [data-inscribir], [data-cola], [data-baja], [data-cancelar-reserva], [data-noop], [data-hueco-inst], [data-ics], [data-repetir]');
     if (!objetivo) return;
 
     if (objetivo.dataset.toggleSeccion) {
@@ -1907,6 +1925,13 @@
         // El re-render destruye el elemento enfocado: se restaura sobre su equivalente
         enfocar(`#selector-pista [data-pista="${seleccion.pistaId}"]`);
       }
+      return;
+    }
+
+    if (objetivo.dataset.semana) {
+      const paso = Number(objetivo.dataset.semana);
+      semanaLunes = new Date(semanaLunes.getFullYear(), semanaLunes.getMonth(), semanaLunes.getDate() + paso * 7);
+      pintarTiraDias();
       return;
     }
 

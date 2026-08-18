@@ -510,44 +510,82 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 
 .chips--filtros { margin-bottom: 24px; }
 
-/* ---------- Tira de días ---------- */
-.tira-dias {
+/* ---------- Selector de días por semanas ---------- */
+.tira-dias { display: flex; flex-direction: column; gap: 12px; }
+
+.semana-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.semana-nav__rango {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--tinta);
+  text-transform: capitalize;
+  font-variant-numeric: tabular-nums;
+}
+.semana-nav__flecha {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1.5px solid var(--borde-control);
+  background: var(--blanco);
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--tinta);
+  cursor: pointer;
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(74px, 1fr);
-  gap: 8px;
-  overflow-x: auto;
-  padding: 4px;
-  margin: 0 -4px;
-  scroll-snap-type: x proximity;
-  -webkit-overflow-scrolling: touch;
+  place-content: center;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+.semana-nav__flecha:hover:not(:disabled) { border-color: var(--verde); }
+.semana-nav__flecha:disabled { opacity: .3; cursor: default; }
+
+.semana-dias {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
 }
 
 .dia {
-  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  min-height: 76px;
-  padding: 10px 6px;
+  min-height: 64px;
+  padding: 9px 2px;
   border-radius: var(--radio);
   border: 1.5px solid var(--borde-control);
   background: var(--blanco);
   cursor: pointer;
   transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
 }
-.dia:hover { border-color: var(--verde); }
-.dia__semana { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tinta-suave); }
-.dia__num { font-family: var(--f-display); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.dia__mes { font-size: .75rem; color: var(--tinta-suave); }
+.dia:hover:not(:disabled) { border-color: var(--verde); }
+.dia:disabled { opacity: .4; cursor: default; background: var(--arena); }
+.dia__semana { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tinta-suave); }
+.dia__num { font-family: var(--f-display); font-size: 1.3rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.dia--hoy:not([aria-pressed="true"]) .dia__num { position: relative; }
+.dia--hoy:not([aria-pressed="true"]) .dia__num::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--verde);
+}
 .dia[aria-pressed="true"] {
   background: var(--verde);
   border-color: var(--verde);
   color: #fff;
 }
-.dia[aria-pressed="true"] .dia__semana,
-.dia[aria-pressed="true"] .dia__mes { color: rgba(255, 255, 255, .8); }
+.dia[aria-pressed="true"] .dia__semana { color: rgba(255, 255, 255, .85); }
 
 /* ---------- Malla de horas ---------- */
 .malla-horas {
