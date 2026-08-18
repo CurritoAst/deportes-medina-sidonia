@@ -118,6 +118,8 @@ async function sincronizar() {
   try {
     const r = await pedir('GET', `${cfg.WEB}/api/estado`);
     if (r.status !== 200) throw new Error('HTTP ' + r.status);
+    // La web responde: aprovechamos para reenviar los accesos que quedaron en cola.
+    await vaciarCola();
     const estado = JSON.parse(r.cuerpo);
     const usuarios = JSON.parse(estado.msd_usuarios || '[]');
     const nuevos = [];
@@ -246,20 +248,58 @@ async function buscarPines() {
   log('Barrido terminado. Pon los GPIO que hicieron clic en MSD_PIN_ENTRADA y MSD_PIN_SALIDA (/etc/acceso-torno.env).');
 }
 
-/* ---------- Registro del acceso en la web ---------- */
+/* ---------- Registro del acceso en la web (con cola offline) ----------
+   Si la web no responde (WiFi/internet caído), el acceso se guarda en una cola
+   en disco y se reenvía cuando la web vuelva. Así no se pierde ningún paso
+   aunque la red falle: la gente sigue entrando y todo queda registrado. */
+
+const COLA_FICHERO = process.env.MSD_COLA || require('path').join(__dirname, 'cola-accesos.json');
+let cola = [];
+
+function cargarCola() {
+  try { cola = JSON.parse(fs.readFileSync(COLA_FICHERO, 'utf8')); if (!Array.isArray(cola)) cola = []; }
+  catch (e) { cola = []; }
+  if (cola.length) log(`Cola de accesos pendientes de enviar: ${cola.length}.`);
+}
+function guardarCola() {
+  try { fs.writeFileSync(COLA_FICHERO, JSON.stringify(cola)); }
+  catch (e) { log('No se pudo guardar la cola de accesos:', e.message); }
+}
+
+async function enviarEvento(evento) {
+  const r = await pedir('POST', `${cfg.WEB}/api/acceso`, { evento });
+  if (r.status !== 201) throw new Error('HTTP ' + r.status + ' ' + (r.cuerpo || ''));
+}
 
 async function registrar(res) {
+  // ts = momento REAL del paso (se conserva aunque se reenvíe más tarde).
   const evento = {
+    ts: Date.now(),
     usuarioId: res.usuarioId, metodo: res.metodo, resultado: res.resultado,
     motivo: res.motivo, direccion: res.direccion, raw: res.raw
   };
   try {
-    const r = await pedir('POST', `${cfg.WEB}/api/acceso`, { evento });
-    if (r.status !== 201) log('  ! la web rechazó el registro:', r.status, r.cuerpo);
+    await enviarEvento(evento);
   } catch (e) {
-    log('  ! no se pudo registrar el acceso (se reintentará al reconectar):', e.message);
-    // En un despliegue real aquí encolaríamos en disco para reenviar luego.
+    cola.push(evento);
+    guardarCola();
+    log(`  ! web no disponible: acceso ENCOLADO para reenviar (${cola.length} en cola).`);
   }
+}
+
+/* Reenvía los accesos encolados. Se llama al arrancar y tras cada sync exitosa. */
+async function vaciarCola() {
+  if (!cola.length) return;
+  const pendientes = cola.slice();
+  const quedan = [];
+  for (const evento of pendientes) {
+    try { await enviarEvento(evento); }
+    catch (e) { quedan.push(evento); }
+  }
+  cola = quedan;
+  guardarCola();
+  const enviados = pendientes.length - quedan.length;
+  if (enviados > 0) log(`Reenviados ${enviados} accesos de la cola.${quedan.length ? ' Quedan ' + quedan.length + '.' : ''}`);
 }
 
 /* ---------- Manejo de una lectura completa ---------- */
@@ -336,6 +376,7 @@ async function principal() {
 
   rele.inicializar([P.entrada, P.salida, P.ledVerde, P.ledRojo].filter((p) => p !== null && p !== undefined));
   cargarCacheDisco();
+  cargarCola();
   await sincronizar();
   setInterval(sincronizar, cfg.SYNC_MS);
   for (const lector of cfg.LECTORES) conectarLector(lector);

@@ -179,7 +179,10 @@ http.createServer((req, res) => {
       try { lista = JSON.parse(estado.msd_accesos || '[]'); } catch (e2) { lista = []; }
       if (!Array.isArray(lista)) lista = [];
       const evento = {
-        ts: Date.now(), usuarioId: e.usuarioId, metodo: e.metodo,
+        // Respeta la fecha del paso si viene (accesos reenviados desde la cola
+        // offline conservan su momento real); si no, la del servidor.
+        ts: (typeof e.ts === 'number' && e.ts > 0) ? e.ts : Date.now(),
+        usuarioId: e.usuarioId, metodo: e.metodo,
         resultado: e.resultado, motivo: e.motivo, direccion: e.direccion,
         raw: typeof e.raw === 'string' ? e.raw.slice(0, 64) : ''
       };
