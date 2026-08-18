@@ -30,8 +30,22 @@ const BOARD_A_BCM = {
   31: 6, 32: 12, 33: 13, 35: 19, 36: 16, 37: 26, 38: 20, 40: 21
 };
 
+/* Detecta qué herramienta GPIO hay en el sistema: pinctrl (Pi OS reciente,
+   Bookworm/Trixie), raspi-gpio (Pi OS antiguo) o, si no hay ninguna, 'sim'. */
+function detectarBackend() {
+  for (const b of ['pinctrl', 'raspi-gpio']) {
+    try { execFileSync(b, ['get'], { stdio: 'ignore' }); return b; }
+    catch (e) { /* no instalado o falló: probamos el siguiente */ }
+  }
+  return 'sim';
+}
+
 function crearGpio(opciones) {
-  const backend = (opciones && opciones.backend) || 'sim';
+  let backend = (opciones && opciones.backend) || 'sim';
+  if (backend === 'auto') {
+    backend = detectarBackend();
+    console.log(`[GPIO] backend autodetectado: '${backend}'`);
+  }
   const activoBajo = !!(opciones && opciones.activoBajo);
   const numeracion = ((opciones && opciones.numeracion) || 'bcm').toLowerCase();
   let averiado = false;

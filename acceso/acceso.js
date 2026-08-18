@@ -27,6 +27,7 @@
 const net = require('net');
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const { URL } = require('url');
 const cfg = require('./config');
 const token = require('./token');
@@ -51,18 +52,28 @@ function edadDe(birthdate) {
   return e;
 }
 
-/* Petición JSON mínima con el módulo http (sin depender de fetch). */
-function pedir(metodo, url, cuerpo) {
+/* Petición JSON mínima, sin depender de fetch. Elige http/https según la URL
+   (antes usaba siempre http y contra una web https caía al puerto 80 → 301) y
+   sigue redirecciones, como el http→https de Render/Cloudflare. */
+function pedir(metodo, url, cuerpo, saltos) {
   return new Promise((resolve, reject) => {
-    const u = new URL(url);
+    let u;
+    try { u = new URL(url); } catch (e) { return reject(e); }
+    const lib = u.protocol === 'https:' ? https : http;
     const datos = cuerpo ? Buffer.from(JSON.stringify(cuerpo)) : null;
-    const req = http.request({
+    const req = lib.request({
       method: metodo,
       hostname: u.hostname,
-      port: u.port,
+      port: u.port || (u.protocol === 'https:' ? 443 : 80),
       path: u.pathname + u.search,
       headers: datos ? { 'Content-Type': 'application/json', 'Content-Length': datos.length } : {}
     }, (res) => {
+      // Seguir redirecciones (http→https, barra final, etc.), hasta 5 saltos.
+      if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && (saltos || 0) < 5) {
+        res.resume(); // descarta el cuerpo del redirect
+        const destino = new URL(res.headers.location, url).toString();
+        return resolve(pedir(metodo, destino, cuerpo, (saltos || 0) + 1));
+      }
       let d = '';
       res.on('data', (t) => { d += t; });
       res.on('end', () => resolve({ status: res.statusCode, cuerpo: d }));
@@ -106,7 +117,7 @@ function cargarCacheDisco() {
 async function sincronizar() {
   try {
     const r = await pedir('GET', `${cfg.WEB}/api/estado`);
-    if (r.status !== 200) throw new Error('estado ' + r.status);
+    if (r.status !== 200) throw new Error('HTTP ' + r.status);
     const estado = JSON.parse(r.cuerpo);
     const usuarios = JSON.parse(estado.msd_usuarios || '[]');
     const nuevos = [];
@@ -122,12 +133,19 @@ async function sincronizar() {
         birthdate: u.birthdate || ''
       });
     }
+    // Salvaguarda: si la web devuelve 0 socios (p. ej. Render se reinició y se
+    // vació el estado) pero ya teníamos caché, la conservamos para no denegar a
+    // todo el mundo por un vaciado temporal de la web.
+    if (nuevos.length === 0 && socios.length > 0) {
+      log(`La web devolvió 0 socios; se conserva la caché anterior (${socios.length}).`);
+      return;
+    }
     socios = nuevos;
     indexar();
     guardarCache();
     log(`Sincronizados ${socios.length} socios con carnet desde la web.`);
   } catch (e) {
-    log(`Sin conexión con la web (${e.message}); se sigue con la caché local (${socios.length} socios).`);
+    log(`Sin conexión con la web ${cfg.WEB} (${e.message}); se sigue con la caché local (${socios.length} socios).`);
   }
 }
 
@@ -313,7 +331,7 @@ async function principal() {
   log('Servicio de acceso del torno — arrancando.');
   const P = cfg.RELE.pines;
   if (cfg.SOLO_ESCUCHA) log('MODO SOLO-ESCUCHA (no abre ni registra, solo imprime).');
-  else if (rele.backend === 'sim') log("Relé SIMULADO (no toca GPIO). Para el torno real: MSD_GPIO=raspi-gpio|pinctrl|sysfs");
+  else if (rele.backend === 'sim') log("Relé SIMULADO (no toca GPIO). Para el torno real: MSD_GPIO=auto (o pinctrl / raspi-gpio / sysfs)");
   else log(`Relé por GPIO real — backend '${rele.backend}', numeración ${cfg.RELE.numeracion}, activo-${cfg.RELE.activoBajo ? 'bajo' : 'alto'}, pines entrada=${P.entrada} salida=${P.salida}.`);
 
   rele.inicializar([P.entrada, P.salida, P.ledVerde, P.ledRojo].filter((p) => p !== null && p !== undefined));

@@ -102,11 +102,15 @@ acceso/            SERVICIO DE ACCESO del torno físico (Node puro, corre junto 
 
 ## Torno de acceso real
 
-El torno físico (lectores NFC/QR sobre un HF5122 en `192.168.1.35`, puertos TCP
+El torno físico (lectores NFC/QR sobre un HF5122 en `10.10.100.254`, puertos TCP
 `8899` entrada y `9999` salida) se integra con un **servicio de acceso** aparte,
 en `acceso/`, que reemplaza al controlador del instalador. A diferencia de aquel
 (que dependía de una nube por MQTT y no abría sin internet), la decisión es
 **local**: valida contra una caché de socios que sobrevive a cortes de red.
+
+> Nota de red (comprobado en el pabellón): el HF5122 no está en la red del
+> router sino en su **propia red `10.10.100.x`** junto a la Pi (que tiene IP en
+> ambas redes por el mismo `eth0`). A los lectores se llega por `10.10.100.254`.
 
 ```
 node server.js                 # 1) la web, en :8137
@@ -116,7 +120,7 @@ node acceso/acceso.js          # 3) el servicio de acceso
 
 En el `mock` interactivo: `e <uid>` pasa una tarjeta por entrada, `qe carmen`
 manda el QR dinámico de un socio, `s <uid>` una salida. Para el torno real:
-`MSD_HOST_ENTRADA=192.168.1.35 MSD_HOST_SALIDA=192.168.1.35 node acceso/acceso.js`.
+`MSD_HOST_ENTRADA=10.10.100.254 MSD_HOST_SALIDA=10.10.100.254 node acceso/acceso.js`.
 Modo solo-escucha (no abre ni registra, solo imprime): `MSD_SOLO_ESCUCHA=1`.
 
 ### Relé de apertura (GPIO)
@@ -127,7 +131,7 @@ El disparo del relé es configurable por variables de entorno; por defecto
 
 | Variable | Para qué | Valores |
 |---|---|---|
-| `MSD_GPIO` | Método de acceso al GPIO | `sim` (def.) · `pinctrl` (Pi OS reciente) · `raspi-gpio` (Pi OS antiguo) · `sysfs` |
+| `MSD_GPIO` | Método de acceso al GPIO | `auto` (detecta pinctrl/raspi-gpio) · `pinctrl` (Pi OS reciente: Bookworm/Trixie) · `raspi-gpio` (Pi OS antiguo) · `sysfs` · `sim` |
 | `MSD_GPIO_NUM` | Numeración de los pines | `bcm` (def.) · `board` (pin físico del header) |
 | `MSD_RELE_ACTIVO_BAJO` | Polaridad (relés Waveshare suelen serlo) | `1` = activo-bajo |
 | `MSD_PIN_ENTRADA` / `MSD_PIN_SALIDA` | Pin del relé de cada sentido | nº (def. 26 / 20) |
@@ -135,7 +139,7 @@ El disparo del relé es configurable por variables de entorno; por defecto
 | `MSD_PULSO_MS` | Duración del pulso de apertura | ms (def. 600) |
 
 Ejemplo en la Raspberry del torno:
-`MSD_GPIO=raspi-gpio MSD_RELE_ACTIVO_BAJO=1 MSD_PIN_ENTRADA=26 MSD_PIN_SALIDA=20 node acceso/acceso.js`
+`MSD_GPIO=auto MSD_RELE_ACTIVO_BAJO=1 MSD_PIN_ENTRADA=26 MSD_PIN_SALIDA=20 node acceso/acceso.js`
 
 ### Puesta en marcha en la Raspberry (llave en mano)
 
