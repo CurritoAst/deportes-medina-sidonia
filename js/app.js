@@ -210,7 +210,20 @@
       navPerfil.href = '#/acceso';
       navPerfil.querySelector('span').textContent = 'Acceder';
     }
+    aplicarRol();
     pintarCampana();
+  }
+
+  /* Muestra/oculta los elementos marcados con data-rol según el rol de quien está
+     dentro. Ej.: data-rol="monitor admin" → visible para monitor Y admin.
+     Es cosmético (el servidor aún no valida roles), pero da a cada rol su menú. */
+  function aplicarRol() {
+    const u = sesion();
+    const rol = u ? u.rol : null;
+    $$('[data-rol]').forEach((el) => {
+      const roles = el.dataset.rol.split(/\s+/).filter(Boolean);
+      el.hidden = !(rol && roles.includes(rol));
+    });
   }
 
   /* ---------- Estado de la reserva en curso ---------- */
@@ -1030,9 +1043,17 @@
     const trasAcceso = (nombre) => {
       pintarSesion();
       avisar(`Hola, ${nombre.split(' ')[0]}. Sesión iniciada.`);
-      const destino = destinoTrasAcceso || '#/perfil';
-      destinoTrasAcceso = null;
-      location.hash = destino;
+      // Si venía de una acción a medias (p. ej. confirmar reserva), se respeta.
+      if (destinoTrasAcceso) {
+        const d = destinoTrasAcceso;
+        destinoTrasAcceso = null;
+        location.hash = d;
+        return;
+      }
+      // Si no, cada rol aterriza en su sitio: admin → panel; monitor → su vista.
+      const u = sesion();
+      if (u && u.rol === 'admin') { location.href = 'admin.html'; return; }
+      location.hash = (u && u.rol === 'monitor') ? '#/monitor' : '#/perfil';
     };
 
     panelEntrar.addEventListener('submit', async (ev) => {
@@ -1703,7 +1724,7 @@
     // Estado activo en las navegaciones
     const rutaActiva = {
       inicio: 'inicio', reservar: 'reservar', clases: 'clases',
-      mis: 'mis-reservas', acceso: 'perfil', perfil: 'perfil', monitor: 'perfil'
+      mis: 'mis-reservas', acceso: 'perfil', perfil: 'perfil', monitor: 'monitor'
     }[nombre];
     $$('.nav-sup a, .nav-inf a, #chip-usuario').forEach((a) => {
       if (a.dataset.ruta === rutaActiva) a.setAttribute('aria-current', 'page');
