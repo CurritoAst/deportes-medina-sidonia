@@ -1616,6 +1616,15 @@ main { padding-bottom: 90px; }
 .tabla tr:last-child td { border-bottom: 0; }
 .tabla .boton--texto { min-height: 36px; padding: 4px 10px; }
 
+.monitor-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.monitor-panel .admin-clase { margin: 0; }
+
 .admin-clase {
   background: var(--blanco);
   border: 1px solid var(--linea);

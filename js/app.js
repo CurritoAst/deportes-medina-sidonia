@@ -1106,6 +1106,41 @@
   function pintarMonitor() {
     const u = sesion();
     if (!u) return;
+    pintarMonitorPanel();
+    pintarMonitorClases(u);
+  }
+
+  /* Cabecera del panel de monitor: aforo en vivo del torno + últimos accesos.
+     Se repinta solo con cada acceso (refrescarDesdeFuera → enrutar → pintarMonitor). */
+  function pintarMonitorPanel() {
+    const cont = $('#monitor-panel');
+    if (!cont) return;
+    const { dentro, entradas, salidas, aforoMax } = MSDAuth.aforoHoy();
+    const pct = Math.min(100, Math.round((dentro / aforoMax) * 100));
+    const recientes = MSDAuth.accesos().slice(0, 10);
+    const nombreDe = (id) => { const q = id ? MSDAuth.buscarPorId(id) : null; return q ? q.nombre : 'Tarjeta desconocida'; };
+    cont.innerHTML = `
+      <div class="monitor-panel">
+        <article class="admin-clase">
+          <div class="aforo" style="margin:0">
+            <div class="aforo__texto"><span><strong>Personas dentro ahora</strong></span><span>${Math.min(dentro, aforoMax)} / ${aforoMax}</span></div>
+            <div class="aforo__barra"><div class="aforo__relleno${dentro >= aforoMax ? ' aforo__relleno--llena' : ''}" style="width:${pct}%"></div></div>
+          </div>
+          <span class="paso__ayuda" style="margin:.6rem 0 0">Hoy: ${entradas} entradas · ${salidas} salidas por el torno.</span>
+        </article>
+        <article class="admin-clase">
+          <h2 class="etiqueta-grupo" style="margin-top:0">Accesos recientes</h2>
+          ${recientes.length ? `<ul class="lista-accesos">${recientes.map((a) => `
+            <li>
+              <span class="lista-accesos__icono ${a.resultado === 'ok' ? 'ok' : 'mal'}">${icono(a.resultado === 'ok' ? 'i-check' : 'i-x', 15)}</span>
+              <span><strong>${esc(nombreDe(a.usuarioId))}</strong> · ${esc(fmtHoraCorta.format(new Date(a.ts)))} · ${a.direccion === 'salida' ? 'Salida' : 'Entrada'}</span>
+              <span class="lista-accesos__motivo">${esc(a.motivo)}</span>
+            </li>`).join('')}</ul>` : '<span class="paso__ayuda">Sin accesos todavía hoy. Aquí verás quién entra y sale por el torno.</span>'}
+        </article>
+      </div>`;
+  }
+
+  function pintarMonitorClases(u) {
     const mias = u.rol === 'admin' ? CLASES : clasesDeMonitor(u);
     const cont = $('#monitor-clases');
     if (!mias.length) {
