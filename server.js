@@ -48,6 +48,8 @@ const TAMANO_MAX = 400 * 1024; // por clave
 
 let almacen = crearAlmacen({ ficheroDatos: FICHERO_DATOS });
 let estado = {};   // se rellena en arrancar(), antes de empezar a escuchar.
+let ultimoErrorBd = null;   // último error de la BD (para /api/salud)
+const bdConfigurada = !!(process.env.MSD_DB_HOST || process.env.MSD_DB_NAME);
 
 /* Guardado con rebote (250 ms): agrupa ráfagas de cambios en una sola escritura.
    El cerrojo `guardando` evita que dos volcados se solapen (importante con la
@@ -230,6 +232,21 @@ const servidor = http.createServer((req, res) => {
     return;
   }
 
+  /* Chequeo de salud: en qué modo persiste (mysql/fichero) y último error de BD.
+     Útil para diagnosticar el despliegue. No expone datos sensibles. */
+  if (ruta === '/api/salud' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      ok: true,
+      almacen: almacen.tipo,                 // 'mysql' | 'fichero'
+      bd_configurada: bdConfigurada,         // ¿hay variables MSD_DB_*?
+      bd_error: ultimoErrorBd,               // motivo si cayó al fichero
+      claves: Object.keys(estado).length,
+      node: process.version
+    }));
+    return;
+  }
+
   if (ruta.startsWith('/api/')) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end('{"error":"no existe"}');
@@ -262,6 +279,7 @@ async function arrancar() {
     estado = await almacen.cargar();
     console.log(`[BD] Estado cargado desde ${almacen.tipo} (${almacen.destino}): ${Object.keys(estado).length} claves.`);
   } catch (e) {
+    ultimoErrorBd = e.message;
     console.error(`[BD] No se pudo cargar desde ${almacen.tipo} (${e.message}). Se continúa con el fichero local.`);
     almacen = crearAlmacenFichero(FICHERO_DATOS);
     estado = await almacen.cargar();
