@@ -209,7 +209,10 @@ http.createServer((req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-store',
-      'Connection': 'keep-alive'
+      'Connection': 'keep-alive',
+      // Detrás de un proxy (nginx/Passenger en Plesk, Cloudflare…) hay que
+      // desactivar el buffering o los eventos SSE no llegan en directo.
+      'X-Accel-Buffering': 'no'
     });
     res.write(': conectado\n\n');
     oyentes.add(res);
