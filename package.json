@@ -11,5 +11,9 @@
     "acceso": "node acceso/acceso.js",
     "lector-mock": "node acceso/lector-mock.js"
   },
+  "dependencies": {
+    "mysql2": "^3.11.0"
+  },
+  "comentarioBD": "mysql2 solo se usa si defines las variables MSD_DB_* (host, name, user, password). Sin ellas, el servidor guarda en data/estado.json y no necesita instalar nada.",
   "license": "UNLICENSED"
 }

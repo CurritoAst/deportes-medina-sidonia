@@ -15,6 +15,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { crearAlmacen, crearAlmacenFichero } = require('./almacen');
 
 /* En local usa 8137; en un host (Render, Railway, Fly…) se toma el puerto que
    inyecta la plataforma por la variable PORT. */
@@ -43,25 +44,31 @@ const CLAVE_VALIDA = /^msd_[a-z0-9_]{1,40}$/;
 const CLAVES_LOCALES = new Set(['msd_sesion', 'msd_usuario']);
 const TAMANO_MAX = 400 * 1024; // por clave
 
-/* ---------- Estado persistente ---------- */
+/* ---------- Estado persistente (MySQL en Plesk, o fichero JSON en local) ---------- */
 
-let estado = {};
-try {
-  estado = JSON.parse(fs.readFileSync(FICHERO_DATOS, 'utf8'));
-  if (!estado || typeof estado !== 'object' || Array.isArray(estado)) estado = {};
-} catch (e) { estado = {}; }
+let almacen = crearAlmacen({ ficheroDatos: FICHERO_DATOS });
+let estado = {};   // se rellena en arrancar(), antes de empezar a escuchar.
 
+/* Guardado con rebote (250 ms): agrupa ráfagas de cambios en una sola escritura.
+   El cerrojo `guardando` evita que dos volcados se solapen (importante con la
+   transacción de MySQL); si llega un cambio mientras se guarda, se reprograma. */
 let temporizadorGuardado = null;
+let guardando = false;
+let repetirGuardado = false;
 function persistir() {
   clearTimeout(temporizadorGuardado);
-  temporizadorGuardado = setTimeout(() => {
-    fs.mkdir(path.dirname(FICHERO_DATOS), { recursive: true }, (errDir) => {
-      if (errDir) return console.error('No se pudo crear data/:', errDir.message);
-      fs.writeFile(FICHERO_DATOS, JSON.stringify(estado), (err) => {
-        if (err) console.error('No se pudo guardar el estado:', err.message);
-      });
+  temporizadorGuardado = setTimeout(volcar, 250);
+}
+function volcar() {
+  if (guardando) { repetirGuardado = true; return; }
+  guardando = true;
+  Promise.resolve()
+    .then(() => almacen.volcar(estado))
+    .catch((err) => console.error(`No se pudo guardar el estado en ${almacen.tipo}:`, err.message))
+    .then(() => {
+      guardando = false;
+      if (repetirGuardado) { repetirGuardado = false; persistir(); }
     });
-  }, 250);
 }
 
 /* ---------- Eventos en directo (SSE) ---------- */
@@ -77,7 +84,7 @@ function difundir(clave, valor, cliente) {
 
 /* ---------- Servidor ---------- */
 
-http.createServer((req, res) => {
+const servidor = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ruta = decodeURIComponent(url.pathname);
 
@@ -244,15 +251,50 @@ http.createServer((req, res) => {
     });
     res.end(contenido);
   });
-}).listen(PUERTO, () => {
-  const redes = [];
-  const ifaces = require('os').networkInterfaces();
-  for (const lista of Object.values(ifaces)) {
-    for (const i of lista || []) {
-      if (i.family === 'IPv4' && !i.internal) redes.push(i.address);
-    }
-  }
-  console.log(`Deportes Medina Sidonia en marcha:`);
-  console.log(`  · En este equipo:  http://localhost:${PUERTO}`);
-  redes.forEach((ip) => console.log(`  · Desde el móvil:  http://${ip}:${PUERTO}  (misma wifi)`));
 });
+
+/* Carga el estado del almacén (MySQL o fichero) y SOLO entonces empieza a
+   escuchar, para no atender peticiones con el estado a medio cargar. Si MySQL
+   estaba configurado pero falla al cargar, cae al fichero local para no dejar
+   la web caída. */
+async function arrancar() {
+  try {
+    estado = await almacen.cargar();
+    console.log(`[BD] Estado cargado desde ${almacen.tipo} (${almacen.destino}): ${Object.keys(estado).length} claves.`);
+  } catch (e) {
+    console.error(`[BD] No se pudo cargar desde ${almacen.tipo} (${e.message}). Se continúa con el fichero local.`);
+    almacen = crearAlmacenFichero(FICHERO_DATOS);
+    estado = await almacen.cargar();
+  }
+  servidor.listen(PUERTO, () => {
+    const redes = [];
+    const ifaces = require('os').networkInterfaces();
+    for (const lista of Object.values(ifaces)) {
+      for (const i of lista || []) {
+        if (i.family === 'IPv4' && !i.internal) redes.push(i.address);
+      }
+    }
+    console.log(`Deportes Medina Sidonia en marcha:`);
+    console.log(`  · En este equipo:  http://localhost:${PUERTO}`);
+    redes.forEach((ip) => console.log(`  · Desde el móvil:  http://${ip}:${PUERTO}  (misma wifi)`));
+  });
+}
+
+/* Apagado ordenado: cuando Passenger/systemd recicla el proceso (SIGTERM) o se
+   corta con Ctrl+C (SIGINT), volcamos el último cambio pendiente (el rebote de
+   250 ms podría no haber saltado) y cerramos la conexión con la BD. */
+let apagando = false;
+async function apagar() {
+  if (apagando) return;
+  apagando = true;
+  clearTimeout(temporizadorGuardado);
+  const cierre = setTimeout(() => process.exit(0), 3000);   // por si algo se cuelga
+  try { await almacen.volcar(estado); } catch (e) { console.error('Volcado final falló:', e.message); }
+  try { await almacen.cerrar(); } catch (e) { /* ignora */ }
+  clearTimeout(cierre);
+  process.exit(0);
+}
+process.on('SIGTERM', apagar);
+process.on('SIGINT', apagar);
+
+arrancar();
