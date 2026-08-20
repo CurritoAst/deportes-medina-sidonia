@@ -1625,6 +1625,50 @@ main { padding-bottom: 90px; }
 }
 .monitor-panel .admin-clase { margin: 0; }
 
+/* --- Gimnasio por horas (panel admin) --- */
+.gim-alta {
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-grande);
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+}
+.gim-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(150px, 1fr) auto;
+  gap: .75rem 1rem;
+  align-items: end;
+}
+.gim-form label { display: flex; flex-direction: column; gap: .3rem; font-weight: 600; font-size: .92rem; }
+.gim-form__ancho { grid-column: 1 / -1; }
+.gim-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+.gim-franja {
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-grande);
+  padding: .85rem 1rem;
+}
+.gim-franja--llena { border-color: var(--coral, #C75B3E); }
+.gim-franja__cima { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; gap: .5rem; }
+.gim-lista { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+.gim-lista--espera { opacity: .9; }
+.gim-persona { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .92rem; }
+.gim-persona__acc { display: flex; gap: .3rem; flex: 0 0 auto; }
+.gim-cola-num { color: var(--coral, #C75B3E); font-weight: 700; }
+.boton-mini {
+  border: 1px solid var(--linea); background: var(--blanco);
+  border-radius: 6px; padding: .15rem .5rem; font-size: .8rem; cursor: pointer;
+}
+.boton-mini:hover { border-color: var(--tinta, #1E3A5F); }
+.boton-mini--rojo { color: var(--coral, #C75B3E); }
+.gim-mover-sel { font-size: .85rem; padding: .1rem .3rem; }
+.gim-mi-hora { display: flex; flex-direction: column; gap: .3rem; }
+.gim-mi-hora__cifra { font-size: 1.9rem; font-weight: 800; color: var(--tinta, #1E3A5F); font-variant-numeric: tabular-nums; line-height: 1.1; }
+
 .admin-clase {
   background: var(--blanco);
   border: 1px solid var(--linea);

@@ -1017,11 +1017,113 @@
      Navegación entre secciones y acciones
      ========================================================================== */
 
+  /* ---------- Gimnasio por horas ---------- */
+
+  let gimAbonadosMap = {};   // "Nombre (email)" → usuarioId, para resolver el datalist
+
+  function pintarGimnasio() {
+    const cfg = MSDGimnasio.config();
+    const r = MSDGimnasio.resumen();
+    $('#gimnasio-resumen').textContent =
+      `${r.asignados} apuntados · ${r.espera} en espera · ${r.libres} plazas libres (${r.franjas} franjas × ${cfg.capacidad})`;
+
+    // Datalist de socios con abono en vigor (el value lleva el email para no confundir homónimos).
+    const abonados = MSDAuth.usuarios().filter(abonoVigente).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    gimAbonadosMap = {};
+    $('#gim-abonados').innerHTML = abonados.map((u) => {
+      const etq = `${u.nombre} (${u.email})`;
+      gimAbonadosMap[etq] = u.id;
+      return `<option value="${esc(etq)}"></option>`;
+    }).join('');
+
+    // Select de franjas con su ocupación a la vista.
+    $('#gim-franja').innerHTML = cfg.franjas.map((f) => {
+      const o = MSDGimnasio.ocupacion(f);
+      const est = o.asignados >= o.capacidad ? `LLENA${o.espera ? ' · ' + o.espera + ' en cola' : ''}` : `${o.asignados}/${o.capacidad}`;
+      return `<option value="${f}">${esc(MSDGimnasio.etiqueta(f))} — ${est}</option>`;
+    }).join('');
+
+    // Rejilla de franjas con asignados y lista de espera.
+    const filaGente = (g) => `
+      <li class="gim-persona">
+        <span class="gim-persona__nombre">${g.posicion ? `<span class="gim-cola-num">${g.posicion}º</span> ` : ''}${esc(nombreDe(g.usuarioId))}${g.nota ? ` <span class="gim-persona__nota" title="${esc(g.nota)}" aria-label="Nota: ${esc(g.nota)}">📝</span>` : ''}</span>
+        <span class="gim-persona__acc">
+          <button class="boton-mini" type="button" data-gim-mover="${g.id}">Mover</button>
+          <button class="boton-mini boton-mini--rojo" type="button" data-gim-quitar="${g.id}" aria-label="Quitar del gimnasio">✕</button>
+        </span>
+      </li>`;
+    $('#gimnasio-franjas').innerHTML = cfg.franjas.map((f) => {
+      const o = MSDGimnasio.ocupacion(f);
+      const gente = MSDGimnasio.deFranja(f);
+      const asignados = gente.filter((g) => g.estado === 'asignado');
+      const espera = gente.filter((g) => g.estado === 'espera');
+      const pct = Math.min(100, Math.round((o.asignados / o.capacidad) * 100));
+      const llena = o.asignados >= o.capacidad;
+      return `
+        <article class="gim-franja${llena ? ' gim-franja--llena' : ''}">
+          <header class="gim-franja__cima">
+            <strong>${esc(MSDGimnasio.etiqueta(f))}</strong>
+            <span class="insignia ${llena ? 'insignia--llena' : 'insignia--plazas'}">${o.asignados}/${o.capacidad}${o.espera ? ` · ${o.espera} en cola` : ''}</span>
+          </header>
+          <div class="aforo__barra"><div class="aforo__relleno${llena ? ' aforo__relleno--llena' : ''}" style="width:${pct}%"></div></div>
+          ${asignados.length ? `<ul class="gim-lista">${asignados.map(filaGente).join('')}</ul>`
+            : '<p class="paso__ayuda" style="margin:.5rem 0 0">Sin nadie apuntado aún.</p>'}
+          ${espera.length ? `<p class="etiqueta-grupo" style="margin:.7rem 0 .2rem">Lista de espera</p><ul class="gim-lista gim-lista--espera">${espera.map(filaGente).join('')}</ul>` : ''}
+        </article>`;
+    }).join('');
+  }
+
+  // Alta en persona
+  $('#form-gimnasio').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const err = $('#gim-error');
+    const mostrar = (m) => { err.textContent = m; err.hidden = false; };
+    err.hidden = true;
+    const usuarioId = gimAbonadosMap[$('#gim-socio').value.trim()];
+    const franja = $('#gim-franja').value;
+    const nota = $('#gim-nota').value.trim();
+    if (!usuarioId) { mostrar('Elige un socio de la lista (debe tener abono en vigor).'); $('#gim-socio').focus(); return; }
+    const u = MSDAuth.buscarPorId(usuarioId);
+    if (!u || !abonoVigente(u)) { mostrar('Ese socio no tiene abono en vigor.'); return; }
+    if (!franja) { mostrar('Elige una hora.'); return; }
+    const res = MSDGimnasio.apuntar(usuarioId, franja, nota);
+    if (res.error) { mostrar(res.error); return; }
+    $('#gim-socio').value = ''; $('#gim-nota').value = '';
+    pintarGimnasio();
+    if (typeof avisar === 'function') {
+      avisar(res.estado === 'espera'
+        ? `${u.nombre} queda en lista de espera de las ${franja}.`
+        : `${u.nombre} apuntado al gimnasio a las ${MSDGimnasio.etiqueta(franja)}.`);
+    }
+  });
+
+  // Mover (despliega un selector en línea) / Quitar
+  document.addEventListener('click', (ev) => {
+    const mover = ev.target.closest('[data-gim-mover]');
+    if (mover) {
+      const acc = mover.closest('.gim-persona__acc');
+      const id = mover.dataset.gimMover;
+      acc.innerHTML = `<select class="gim-mover-sel" data-gim-mover-sel="${id}" aria-label="Mover a otra hora">
+        <option value="">Mover a…</option>
+        ${MSDGimnasio.config().franjas.map((f) => `<option value="${f}">${esc(MSDGimnasio.etiqueta(f))}</option>`).join('')}
+      </select>`;
+      const sel = acc.querySelector('select'); if (sel) sel.focus();
+      return;
+    }
+    const quitar = ev.target.closest('[data-gim-quitar]');
+    if (quitar) { MSDGimnasio.quitar(quitar.dataset.gimQuitar); pintarGimnasio(); }
+  });
+  document.addEventListener('change', (ev) => {
+    const sel = ev.target.closest('[data-gim-mover-sel]');
+    if (sel && sel.value) { MSDGimnasio.mover(sel.dataset.gimMoverSel, sel.value); pintarGimnasio(); }
+  });
+
   const pintores = {
     panel: pintarPanel,
     reservas: () => { pintarReservaManual(); pintarReservas(); },
     clases: pintarClases,
     abonados: pintarAbonados,
+    gimnasio: pintarGimnasio,
     tarifas: pintarTarifas,
     instalaciones: pintarBloqueos,
     plid: pintarPlid,

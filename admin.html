@@ -133,6 +133,7 @@
         <button type="button" data-seccion="reservas"><svg width="19" height="19" aria-hidden="true"><use href="#i-calendario"/></svg> Reservas</button>
         <button type="button" data-seccion="clases"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Clases y colas</button>
         <button type="button" data-seccion="abonados"><svg width="19" height="19" aria-hidden="true"><use href="#i-usuario"/></svg> Abonados</button>
+        <button type="button" data-seccion="gimnasio"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Gimnasio por horas</button>
         <button type="button" data-seccion="tarifas"><svg width="19" height="19" aria-hidden="true"><use href="#i-euro"/></svg> Tarifas y finanzas</button>
         <button type="button" data-seccion="instalaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-valla"/></svg> Bloqueos de pista</button>
         <button type="button" data-seccion="plid"><svg width="19" height="19" aria-hidden="true"><use href="#i-grafica"/></svg> Ocupación · PLID</button>
@@ -145,6 +146,34 @@
           <div class="kpis" id="admin-kpis"><!-- JS --></div>
           <h2 class="etiqueta-grupo">Últimas automatizaciones</h2>
           <ul class="lista-auto" id="admin-auto-resumen"><!-- JS --></ul>
+        </section>
+
+        <section class="admin-seccion" id="seccion-gimnasio" aria-label="Gimnasio por horas" hidden>
+          <div class="admin-seccion__cabecera">
+            <h2 class="etiqueta-grupo">Gimnasio por horas</h2>
+            <span class="paso__ayuda" id="gimnasio-resumen" style="margin:0"></span>
+          </div>
+
+          <div class="gim-alta">
+            <h3 class="etiqueta-grupo" style="margin-top:0">Apuntar a un socio (en persona)</h3>
+            <p class="paso__ayuda">Solo socios con <strong>abono en vigor</strong>. Si la hora está llena, entra en <strong>lista de espera</strong> y asciende solo cuando se libera un hueco.</p>
+            <form id="form-gimnasio" class="gim-form" novalidate>
+              <label>Socio
+                <input id="gim-socio" list="gim-abonados" placeholder="Escribe el nombre…" autocomplete="off" required>
+                <datalist id="gim-abonados"></datalist>
+              </label>
+              <label>Hora
+                <select id="gim-franja" required></select>
+              </label>
+              <label class="gim-form__ancho">Nota / estado físico (opcional)
+                <input id="gim-nota" maxlength="200" placeholder="Observaciones del reconocimiento…">
+              </label>
+              <button class="boton" type="submit">Apuntar</button>
+            </form>
+            <p class="campo__error" id="gim-error" role="alert" hidden></p>
+          </div>
+
+          <div id="gimnasio-franjas" class="gim-rejilla"><!-- JS: franjas con ocupación, asignados y cola --></div>
         </section>
 
         <section class="admin-seccion" id="seccion-reservas" aria-label="Reservas de pistas" hidden>
@@ -393,6 +422,7 @@
 <script src="js/token.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/gimnasio.js"></script>
 <script src="js/vendor/jsQR.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/demo.js"></script>

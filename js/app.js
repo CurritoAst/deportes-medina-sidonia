@@ -1293,6 +1293,19 @@
 
     pintarCampana(); // el badge refleja avisos nuevos (renovaciones, cola…)
 
+    // Mi hora de gimnasio (la asigna recepción; el socio solo la consulta)
+    const cg = $('#perfil-gimnasio');
+    if (cg && typeof MSDGimnasio !== 'undefined') {
+      const gim = MSDGimnasio.deUsuario(u.id);
+      if (!gim) {
+        cg.innerHTML = `<div class="aviso-vacio"><strong>Sin hora asignada</strong>Para usar el gimnasio, pásate por recepción con tu abono y te asignamos tu hora.</div>`;
+      } else if (gim.estado === 'asignado') {
+        cg.innerHTML = `<div class="gim-mi-hora"><span class="gim-mi-hora__cifra">${esc(MSDGimnasio.etiqueta(gim.franja))}</span><span class="paso__ayuda" style="margin:0">Tu hora del gimnasio. Recuerda entrar siempre dentro de tu franja.</span></div>`;
+      } else {
+        cg.innerHTML = `<div class="aviso-vacio"><strong>En lista de espera</strong>Estás ${gim.posicion}º en la cola de las ${esc(MSDGimnasio.etiqueta(gim.franja))}. Te avisaremos en cuanto entres.</div>`;
+      }
+    }
+
     const mios = MSDAuth.accesos().filter((a) => a.usuarioId === u.id).slice(0, 8);
     $('#perfil-accesos').innerHTML = mios.length
       ? `<ul class="lista-accesos">${mios.map((a) => `
