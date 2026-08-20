@@ -11,9 +11,12 @@
 const crypto = require('crypto');
 
 const VENTANA = 30;      // segundos
-const TOLERANCIA = 1;    // se aceptan T, T-1 y T+1
+const TOLERANCIA = 2;    // se aceptan T-2..T+2 (~±90 s) para absorber desfase de reloj
 const DIGITOS = 8;
 
+/* Ventana temporal = epoch UTC / 30. Date.now() es UTC epoch, INDEPENDIENTE de
+   la zona horaria: navegador y Node dan la misma T si sus relojes están en hora
+   (NTP). NO se aplica ningún offset de zona aquí (eso causaría el "caducado"). */
 function ventanaActual(msEpoch) {
   return Math.floor((msEpoch || Date.now()) / 1000 / VENTANA);
 }

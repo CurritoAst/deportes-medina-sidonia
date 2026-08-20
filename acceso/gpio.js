@@ -33,9 +33,16 @@ const BOARD_A_BCM = {
 /* Detecta qué herramienta GPIO hay en el sistema: pinctrl (Pi OS reciente,
    Bookworm/Trixie), raspi-gpio (Pi OS antiguo) o, si no hay ninguna, 'sim'. */
 function detectarBackend() {
+  const rutas = {
+    'pinctrl': ['/usr/bin/pinctrl', '/usr/local/bin/pinctrl'],
+    'raspi-gpio': ['/usr/bin/raspi-gpio', '/usr/local/bin/raspi-gpio']
+  };
   for (const b of ['pinctrl', 'raspi-gpio']) {
-    try { execFileSync(b, ['get'], { stdio: 'ignore' }); return b; }
-    catch (e) { /* no instalado o falló: probamos el siguiente */ }
+    // 1) ¿existe el binario en una ruta conocida? (más fiable que depender del PATH)
+    if (rutas[b].some((p) => fs.existsSync(p))) return b;
+    // 2) por si está en otra ruta del PATH
+    try { execFileSync(b, ['help'], { stdio: 'ignore' }); return b; }
+    catch (e) { /* siguiente */ }
   }
   return 'sim';
 }

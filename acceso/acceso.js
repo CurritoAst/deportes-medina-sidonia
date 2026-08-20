@@ -35,11 +35,21 @@ const token = require('./token');
 /* ---------- Utilidades ---------- */
 
 const pad2 = (n) => String(n).padStart(2, '0');
-const hoy = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-};
-const ts = () => new Date().toISOString().slice(11, 19);
+
+/* Hora "de pared" en Europe/Madrid, independiente de la TZ del sistema.
+   OJO: esto es solo para el LOG y para la fecha del abono (comparar con hasta).
+   La validación del QR NO usa esto: usa epoch UTC (Date.now()) en token.js. */
+const ZONA = process.env.MSD_TZ || 'Europe/Madrid';
+function partesLocales(d) {
+  const p = {};
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(d).forEach((x) => { p[x.type] = x.value; });
+  return p;
+}
+const hoy = () => { const p = partesLocales(new Date()); return `${p.year}-${p.month}-${p.day}`; };
+const ts = () => { const p = partesLocales(new Date()); return `${p.hour}:${p.minute}:${p.second}`; };
 const log = (...a) => console.log(`[${ts()}]`, ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

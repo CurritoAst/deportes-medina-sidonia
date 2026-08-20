@@ -1,9 +1,10 @@
 [Unit]
 Description=Torno de acceso — Deportes Medina Sidonia
 Documentation=https://github.com/CurritoAst/deportes-medina-sidonia
-# Espera a que la red esté lista (para hablar con el lector y con la web)
-After=network-online.target
-Wants=network-online.target
+# Espera a la red Y a que el reloj esté sincronizado por NTP (si no, los QR
+# pueden salir "caducados" por un reloj mal justo al encender).
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
 # No abandonar aunque se reinicie muchas veces (el lector puede tardar en estar)
 StartLimitIntervalSec=0
 

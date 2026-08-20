@@ -23,11 +23,13 @@ const MSDToken = (function () {
   'use strict';
 
   const VENTANA = 30;          // segundos de validez de cada código
-  const TOLERANCIA = 1;        // ventanas de margen: se aceptan T, T-1 y T+1
+  const TOLERANCIA = 2;        // se aceptan T-2..T+2 (~±90 s) contra desfase de reloj
   const DIGITOS = 8;           // longitud del código
 
   const enc = new TextEncoder();
 
+  /* Ventana = epoch UTC / 30. Date.now() es UTC (independiente de zona horaria);
+     navegador y Node coinciden si sus relojes están en hora. Sin offset de zona. */
   function ventanaActual(msEpoch) {
     return Math.floor((msEpoch || Date.now()) / 1000 / VENTANA);
   }
