@@ -16,6 +16,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { crearAlmacen, crearAlmacenFichero } = require('./almacen');
+const bd = require('./lib/bd');
+const { migrar } = require('./migrar');
 
 /* En local usa 8137; en un host (Render, Railway, Fly…) se toma el puerto que
    inyecta la plataforma por la variable PORT. */
@@ -50,6 +52,8 @@ let almacen = crearAlmacen({ ficheroDatos: FICHERO_DATOS });
 let estado = {};   // se rellena en arrancar(), antes de empezar a escuchar.
 let ultimoErrorBd = null;   // último error de la BD (para /api/salud)
 const bdConfigurada = !!(process.env.MSD_DB_HOST || process.env.MSD_DB_NAME);
+let esquemaVersion = 0;     // versión del esquema relacional aplicada por migrar.js
+let esquemaError = null;
 
 /* Guardado con rebote (250 ms): agrupa ráfagas de cambios en una sola escritura.
    El cerrojo `guardando` evita que dos volcados se solapen (importante con la
@@ -259,8 +263,11 @@ function atender(req, res) {
       almacen: almacen.tipo,                 // 'mysql' | 'fichero'
       bd_configurada: bdConfigurada,         // ¿hay variables MSD_DB_*?
       bd_error: ultimoErrorBd,               // motivo si cayó al fichero
+      esquema_version: esquemaVersion,       // migraciones aplicadas (0 = sin esquema relacional)
+      esquema_error: esquemaError,
       claves: Object.keys(estado).length,
-      node: process.version
+      node: process.version,
+      pid: process.pid
     }));
     return;
   }
@@ -312,6 +319,22 @@ function esEstaticoPermitido(p) {
    estaba configurado pero falla al cargar, cae al fichero local para no dejar
    la web caída. */
 async function arrancar() {
+  // 1) Esquema relacional: aplica las migraciones pendientes ANTES de escuchar.
+  //    Si falla, la web sigue arrancando con el almacén legado (no se cae), y
+  //    /api/salud muestra el error para diagnosticarlo.
+  if (bd.configurada()) {
+    try {
+      const r = await migrar((m) => console.log(m));
+      esquemaVersion = r.version;
+      if (r.aplicadas.length) console.log(`[BD] Migraciones aplicadas: ${r.aplicadas.join(', ')} (esquema v${r.version}).`);
+      else console.log(`[BD] Esquema relacional en versión ${r.version}.`);
+    } catch (e) {
+      esquemaError = e.message;
+      console.error('[BD] Error aplicando migraciones:', e.message);
+    }
+  }
+  // 2) Estado legado (clave-valor) — sigue siendo la fuente de la web hasta que
+  //    las fases F2..F6 muevan cada pantalla a las tablas nuevas.
   try {
     estado = await almacen.cargar();
     console.log(`[BD] Estado cargado desde ${almacen.tipo} (${almacen.destino}): ${Object.keys(estado).length} claves.`);
@@ -346,6 +369,7 @@ async function apagar() {
   const cierre = setTimeout(() => process.exit(0), 3000);   // por si algo se cuelga
   try { await almacen.volcar(estado); } catch (e) { console.error('Volcado final falló:', e.message); }
   try { await almacen.cerrar(); } catch (e) { /* ignora */ }
+  try { await bd.cerrar(); } catch (e) { /* ignora */ }
   clearTimeout(cierre);
   process.exit(0);
 }
