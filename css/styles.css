@@ -1595,7 +1595,10 @@ main { padding-bottom: 90px; }
 .tabla-envoltura { overflow-x: auto; position: relative; }
 .tabla {
   width: 100%;
-  border-collapse: collapse;
+  /* separate + border-spacing 0: con 'collapse', el overflow:hidden + border-radius
+     hacían desaparecer el borde exterior (solo quedaban las líneas de fila). */
+  border-collapse: separate;
+  border-spacing: 0;
   background: var(--blanco);
   border: 1px solid var(--linea);
   border-radius: var(--radio-grande);
@@ -2650,6 +2653,18 @@ main { padding-bottom: 90px; }
   background: var(--blanco);
   font-family: var(--f-mono);
   font-size: .95rem;
+}
+/* Campo de euros: el € va dentro del recuadro, a la derecha. */
+.tarifa-money { position: relative; display: inline-block; }
+.tarifa-money .tarifa-campo { padding-right: 26px; }
+.tarifa-money .tarifa-euro {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--tinta-suave);
+  font-weight: 700;
+  pointer-events: none;
 }
 
 #editor-usuario .formulario { margin-bottom: 16px; border-left: 4px solid var(--anil); }

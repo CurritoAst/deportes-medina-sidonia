@@ -754,35 +754,39 @@
   /* ---------- Tarifas y finanzas ---------- */
 
   function pintarTarifas() {
+    // Campo de euros: el símbolo € va DENTRO del recuadro, a la derecha, para que
+    // cada precio se lea claro de un vistazo.
+    const campoEuro = (id, valor, etiqueta) =>
+      `<span class="tarifa-money"><input class="tarifa-campo" type="number" min="0" step="0.5" id="${id}" value="${valor}" aria-label="${esc(etiqueta)}"><span class="tarifa-euro" aria-hidden="true">€</span></span>`;
     $('#admin-tarifas').innerHTML = `
       <h3 class="etiqueta-grupo" style="margin-top:6px">Alquiler de instalaciones</h3>
       <div class="tabla-envoltura" tabindex="0" role="region" aria-label="Tabla de tarifas">
       <table class="tabla"><thead><tr>
-        <th scope="col">Instalación</th><th scope="col">Precio (€)</th><th scope="col">Suplemento de luz (€)</th>
+        <th scope="col">Instalación</th><th scope="col">Precio</th><th scope="col">Suplemento de luz</th>
       </tr></thead><tbody>
         ${INSTALACIONES.map((i) => `<tr>
           <td data-etiqueta="Instalación">${esc(i.nombre)} <span style="color:var(--tinta-suave)">/ ${esc(i.unidad)}</span></td>
-          <td data-etiqueta="Precio"><input class="tarifa-campo" type="number" min="0" step="0.5" id="tarifa-precio-${i.id}" value="${i.precio}" aria-label="Precio de ${esc(i.nombre)}"></td>
+          <td data-etiqueta="Precio">${campoEuro(`tarifa-precio-${i.id}`, i.precio, 'Precio de ' + i.nombre)}</td>
           <td data-etiqueta="Luz">${i.exterior
-            ? `<input class="tarifa-campo" type="number" min="0" step="0.5" id="tarifa-luz-${i.id}" value="${i.suplementoLuz}" aria-label="Suplemento de luz de ${esc(i.nombre)}">`
-            : '—'}</td>
+            ? campoEuro(`tarifa-luz-${i.id}`, i.suplementoLuz, 'Suplemento de luz de ' + i.nombre)
+            : '<span style="color:var(--tinta-suave)">—</span>'}</td>
         </tr>`).join('')}
       </tbody></table></div>
 
       <h3 class="etiqueta-grupo" style="margin-top:20px">Cuotas mensuales de actividades</h3>
       <div class="tabla-envoltura" tabindex="0" role="region" aria-label="Tabla de cuotas">
       <table class="tabla"><thead><tr>
-        <th scope="col">Actividad</th><th scope="col">Cuota (€/mes)</th>
+        <th scope="col">Actividad</th><th scope="col">Cuota al mes</th>
       </tr></thead><tbody>
         ${CLASES.map((c) => `<tr>
           <td data-etiqueta="Actividad">${esc(c.nombre)}</td>
-          <td data-etiqueta="Cuota"><input class="tarifa-campo" type="number" min="0" step="0.5" id="tarifa-clase-${c.id}" value="${c.precioMes}" aria-label="Cuota mensual de ${esc(c.nombre)}"></td>
+          <td data-etiqueta="Cuota">${campoEuro(`tarifa-clase-${c.id}`, c.precioMes, 'Cuota mensual de ' + c.nombre)}</td>
         </tr>`).join('')}
       </tbody></table></div>
 
       <h3 class="etiqueta-grupo" style="margin-top:20px">Abono del gimnasio</h3>
-      <label class="admin-filtros__campo"><span>Cuota mensual (€)</span>
-        <input class="tarifa-campo" type="number" min="0" step="0.5" id="tarifa-abono" value="${MSDAuth.PRECIO_ABONO}">
+      <label class="admin-filtros__campo"><span>Cuota mensual</span>
+        ${campoEuro('tarifa-abono', MSDAuth.PRECIO_ABONO, 'Cuota mensual del abono')}
       </label>`;
   }
 
