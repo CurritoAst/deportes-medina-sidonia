@@ -269,12 +269,53 @@ const MSDAuth = (function () {
   let yo = null;                 // usuario del servidor (forma de vistaUsuarioPropio)
   let modoServidor = false;      // true cuando /api/auth responde (hay BD)
 
-  /* Fusiona el usuario del servidor con su ficha legada (abono/carnet) si
-     existe, para que las pantallas de F2 sigan viendo `abono` hasta F3. */
+  /* Usuario de servidor con la forma que esperan las pantallas. El abono viene
+     del servidor (F3) con la misma forma que el legado (activo/desde/hasta/
+     autoRenovar) más `nfcUltimos4`/`tienePulsera`; el UID completo y la
+     semilla del QR NO llegan al navegador. */
   function usuarioFusionado(y) {
     if (!y) return null;
-    const legado = usuarios.find((u) => u.email && y.email && u.email.toLowerCase() === y.email.toLowerCase());
-    return Object.assign({ abono: null, birthdate: '', telefono: '' }, legado || {}, y, { id: y.id, rol: y.rol, nombre: y.nombre, email: y.email });
+    const ab = y.abono ? {
+      activo: !!y.abono.activo, desde: y.abono.desde, hasta: y.abono.hasta, autoRenovar: !!y.abono.autoRenovar,
+      vigente: !!y.abono.vigente, nfcUltimos4: y.abono.nfcUltimos4 || null, tienePulsera: !!y.abono.tienePulsera,
+      // compatibilidad con htmlCarnet: muestra '···1234' en vez del UID completo
+      nfcUid: y.abono.nfcUltimos4 ? '···' + y.abono.nfcUltimos4 : null, nfcId: null, qrSeed: null, qrUid: y.abono.qrUid || null,
+      servidor: true
+    } : null;
+    return Object.assign({ birthdate: '', telefono: '' }, y, { id: y.id, rol: y.rol, nombre: y.nombre, email: y.email, abono: ab });
+  }
+
+  /* ---------- QR del carnet en modo servidor (lote de códigos, sin semilla) ---------- */
+  let loteQr = null;          // { qrUid, desdeT, ventana, codigos, servidorMs, pedidoEnLocal }
+  let pidiendoLote = null;
+  const LOTE_CLAVE = 'msd_qr_lote';
+  try { loteQr = JSON.parse(localStorage.getItem(LOTE_CLAVE) || 'null'); } catch (e) { loteQr = null; }
+
+  function ventanaActualServidor() {
+    const offset = loteQr ? (loteQr.servidorMs - loteQr.pedidoEnLocal) : 0;   // reloj del servidor − reloj local
+    return Math.floor((Date.now() + offset) / 1000 / (loteQr ? loteQr.ventana : 30));
+  }
+  async function pedirLoteQr() {
+    if (pidiendoLote) return pidiendoLote;
+    pidiendoLote = (async () => {
+      const r = await MSDApi.get('/api/mi/qr');
+      if (r.ok) {
+        loteQr = Object.assign({}, r.datos, { pedidoEnLocal: Date.now() });
+        try { localStorage.setItem(LOTE_CLAVE, JSON.stringify(loteQr)); } catch (e) { /* */ }
+      } else if (r.status === 403) {
+        loteQr = null; try { localStorage.removeItem(LOTE_CLAVE); } catch (e) { /* */ }
+      }
+      pidiendoLote = null;
+      return loteQr;
+    })();
+    return pidiendoLote;
+  }
+  /* Prefetch: al entrar con abono vigente, al volver a la pestaña y al recuperar red,
+     para que en la puerta haya QR aunque el móvil se quede sin cobertura. */
+  function prefetchLote() { if (modoServidor && yo && yo.abono && yo.abono.vigente) pedirLoteQr().catch(() => {}); }
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') prefetchLote(); });
+    window.addEventListener('online', prefetchLote);
   }
 
   function sesionActual() {
@@ -292,7 +333,16 @@ const MSDAuth = (function () {
     if (r.status === 503 || r.sinRed) return false;       // sin BD / sin red: modo local
     modoServidor = true;
     yo = r.ok ? r.datos.usuario : null;
+    if (r.ok) prefetchLote();
     return true;
+  }
+  /* Refresca `yo` desde el servidor (tras cambios que afecten al abono, etc.). */
+  async function recargarYo() {
+    if (!modoServidor) return null;
+    const r = await MSDApi.get('/api/auth/yo');
+    if (r.ok) { yo = r.datos.usuario; prefetchLote(); }
+    else if (r.status === 401) yo = null;
+    return usuarioFusionado(yo);
   }
 
   /* ---------- Registro / entrada / salida ---------- */
@@ -330,7 +380,7 @@ const MSDAuth = (function () {
   }
 
   function salir() {
-    if (modoServidor) { yo = null; MSDApi.post('/api/auth/salir').catch(() => {}); }
+    if (modoServidor) { yo = null; loteQr = null; try { localStorage.removeItem(LOTE_CLAVE); } catch (e) { /* */ } MSDApi.post('/api/auth/salir').catch(() => {}); }
     localStorage.removeItem(CLAVES.sesion);
   }
 
@@ -583,6 +633,22 @@ const MSDAuth = (function () {
   /* Carnet real: QR DINÁMICO (rotatorio cada 30 s, firmado con la semilla del
      socio). Devuelve el contenido del QR y cuándo caduca, para la cuenta atrás. */
   async function cargaQrDinamica(usuario) {
+    if (modoServidor) {
+      // El servidor calcula los códigos; aquí solo se elige el de la ventana en curso.
+      if (!usuario || !usuario.abono || !usuario.abono.vigente) return null;
+      if (!loteQr) await pedirLoteQr().catch(() => {});
+      if (!loteQr) return null;
+      const T = ventanaActualServidor();
+      const i = T - loteQr.desdeT;
+      if (i < 0 || i >= loteQr.codigos.length) {               // lote agotado/adelantado
+        const nuevo = await pedirLoteQr().catch(() => null);
+        if (!nuevo) return { payload: null, expiraEnMs: 0, agotado: true, nfcUltimos4: usuario.abono.nfcUltimos4 };
+        return cargaQrDinamica(usuario);
+      }
+      if (loteQr.codigos.length - i <= 3 && navigator.onLine) pedirLoteQr().catch(() => {});   // repedir con antelación
+      const finVentanaMs = (T + 1) * loteQr.ventana * 1000 - (loteQr.servidorMs - loteQr.pedidoEnLocal);
+      return { payload: `${loteQr.qrUid}${loteQr.codigos[i]}`, T, expiraEnMs: finVentanaMs - Date.now(), ventana: loteQr.ventana };
+    }
     if (!usuario || !usuario.abono || !usuario.abono.nfcUid || !usuario.abono.qrSeed) return null;
     if (typeof MSDToken === 'undefined') return null;
     return MSDToken.generar(usuario.abono.nfcUid, usuario.abono.qrSeed);
@@ -768,6 +834,7 @@ const MSDAuth = (function () {
       ejecutarAutomatizaciones();
     })(),
     get modoServidor() { return modoServidor; },
+    recargarYo,
     verificarCorreo,
     reenviarVerificacion,
     recuperar,

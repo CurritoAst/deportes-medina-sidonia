@@ -65,114 +65,180 @@ function edadDe(birthdate) {
 /* Petición JSON mínima, sin depender de fetch. Elige http/https según la URL
    (antes usaba siempre http y contra una web https caía al puerto 80 → 301) y
    sigue redirecciones, como el http→https de Render/Cloudflare. */
-function pedir(metodo, url, cuerpo, saltos) {
+function pedir(metodo, url, cuerpo, saltos, extraCabeceras) {
   return new Promise((resolve, reject) => {
     let u;
     try { u = new URL(url); } catch (e) { return reject(e); }
     const lib = u.protocol === 'https:' ? https : http;
     const datos = cuerpo ? Buffer.from(JSON.stringify(cuerpo)) : null;
+    const cab = Object.assign({}, datos ? { 'Content-Type': 'application/json', 'Content-Length': datos.length } : {}, extraCabeceras || {});
+    // El token del torno SOLO se envía al host de la web configurada (nunca se
+    // reenvía a otro host si hubiera una redirección a un dominio distinto).
+    if (cfg.TOKEN && mismoHost(u, cfg.WEB)) cab.Authorization = `Bearer ${cfg.TOKEN}`;
+    cab['X-Torno-Version'] = VERSION_TORNO;
     const req = lib.request({
       method: metodo,
       hostname: u.hostname,
       port: u.port || (u.protocol === 'https:' ? 443 : 80),
       path: u.pathname + u.search,
-      headers: datos ? { 'Content-Type': 'application/json', 'Content-Length': datos.length } : {}
+      headers: cab
     }, (res) => {
       // Seguir redirecciones (http→https, barra final, etc.), hasta 5 saltos.
       if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && (saltos || 0) < 5) {
         res.resume(); // descarta el cuerpo del redirect
         const destino = new URL(res.headers.location, url).toString();
-        return resolve(pedir(metodo, destino, cuerpo, (saltos || 0) + 1));
+        return resolve(pedir(metodo, destino, cuerpo, (saltos || 0) + 1, extraCabeceras));
       }
       let d = '';
       res.on('data', (t) => { d += t; });
-      res.on('end', () => resolve({ status: res.statusCode, cuerpo: d }));
+      res.on('end', () => resolve({ status: res.statusCode, cuerpo: d, cabeceras: res.headers }));
     });
+    // Sin timeout una conexión colgada bloquearía la sync para siempre.
+    req.setTimeout(cfg.TIMEOUT_MS, () => req.destroy(new Error('tiempo de espera agotado')));
     req.on('error', reject);
     if (datos) req.write(datos);
     req.end();
   });
 }
+function mismoHost(u, base) { try { return new URL(base).host === u.host; } catch (e) { return false; } }
+const VERSION_TORNO = (() => { try { return require('child_process').execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch (e) { return 'desconocida'; } })();
+
+/* Escritura ATÓMICA de un JSON: escribe en .tmp y renombra (un corte de luz a
+   mitad de escritura no deja un fichero corrupto). Permisos 0600 (la caché
+   contiene las semillas del QR). */
+function escribirJsonAtomico(fichero, valor) {
+  const tmp = fichero + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(valor), { mode: 0o600 });
+  try { fs.renameSync(tmp, fichero); } catch (e) { fs.copyFileSync(tmp, fichero); fs.unlinkSync(tmp); }
+  try { fs.chmodSync(fichero, 0o600); } catch (e) { /* Windows/dev */ }
+}
 
 /* ---------- Caché local de socios ---------- */
 
-let socios = [];              // [{ id, nombre, nfcUid, nfcId, qrSeed, activo, hasta, birthdate }]
-const porUid = new Map();
-const porNfcId = new Map();
+let socios = [];              // [{ id, nombre, nfcUid, nfcId, qrUid, qrSeed, activo, hasta, birthdate, gym }]
+const porUid = new Map();     // UID físico de la pulsera → socio (paso 1: NFC)
+const porNfcId = new Map();   // id legado 'NFC-XXXX' → socio
+const porQrUid = new Map();   // identificador del QR → socio (SOLO para validar el QR dinámico)
+let etagSocios = null;
+let sincronizando = false;
+let ultimaSyncOk = 0;
 
 function indexar() {
-  porUid.clear(); porNfcId.clear();
+  porUid.clear(); porNfcId.clear(); porQrUid.clear();
   for (const s of socios) {
-    if (s.nfcUid) porUid.set(s.nfcUid, s);
+    if (s.nfcUid) porUid.set(String(s.nfcUid), s);
     if (s.nfcId) porNfcId.set(s.nfcId, s);
+    // Compatibilidad con cachés antiguas (antes el prefijo del QR era el UID físico)
+    const q = s.qrUid || s.nfcUid;
+    if (q && s.qrSeed) porQrUid.set(String(q), s);
   }
 }
 
 function guardarCache() {
-  try { fs.writeFileSync(cfg.CACHE_FICHERO, JSON.stringify(socios)); }
+  try { escribirJsonAtomico(cfg.CACHE_FICHERO, { version: 2, generado: Date.now(), etag: etagSocios, socios }); }
   catch (e) { log('No se pudo guardar la caché:', e.message); }
 }
 
+/* Tolerante con el formato antiguo (array plano) y el nuevo ({version:2, socios}). */
 function cargarCacheDisco() {
   try {
-    socios = JSON.parse(fs.readFileSync(cfg.CACHE_FICHERO, 'utf8'));
-    if (!Array.isArray(socios)) socios = [];
+    const crudo = JSON.parse(fs.readFileSync(cfg.CACHE_FICHERO, 'utf8'));
+    if (Array.isArray(crudo)) { socios = crudo; }
+    else if (crudo && Array.isArray(crudo.socios)) { socios = crudo.socios; etagSocios = crudo.etag || null; }
+    else socios = [];
     indexar();
     log(`Caché local cargada: ${socios.length} socios con carnet.`);
   } catch (e) { socios = []; }
 }
 
 /* Descarga los socios de la web y refresca la caché. Si falla, se sigue con la
-   caché en disco (el torno debe funcionar aunque la web esté caída). */
+   caché en disco (el torno debe funcionar aunque la web esté caída).
+   Usa el endpoint del torno (Bearer) con ETag: si nada cambió → 304 sin coste. */
 async function sincronizar() {
+  if (sincronizando) return;
+  sincronizando = true;
   try {
-    const r = await pedir('GET', `${cfg.WEB}/api/estado`);
+    const cab = etagSocios ? { 'If-None-Match': etagSocios } : {};
+    const r = await pedir('GET', `${cfg.WEB}/api/torno/socios`, null, 0, cab);
+    if (r.status === 401 || r.status === 403) {
+      log(`TOKEN DEL TORNO RECHAZADO por la web (HTTP ${r.status}). Revisa MSD_TOKEN_TORNO en /etc/acceso-torno.env. Se sigue con la caché (${socios.length} socios).`);
+      return;
+    }
+    if (r.status === 304) { ultimaSyncOk = Date.now(); await vaciarCola(); return; }
     if (r.status !== 200) throw new Error('HTTP ' + r.status);
+    ultimaSyncOk = Date.now();
     // La web responde: aprovechamos para reenviar los accesos que quedaron en cola.
     await vaciarCola();
-    const estado = JSON.parse(r.cuerpo);
-    const usuarios = JSON.parse(estado.msd_usuarios || '[]');
-    const nuevos = [];
-    for (const u of usuarios) {
-      if (!u || !u.abono) continue;
-      nuevos.push({
-        id: u.id, nombre: u.nombre,
-        nfcUid: u.abono.nfcUid || null,
-        nfcId: u.abono.nfcId || null,
-        qrSeed: u.abono.qrSeed || null,
-        activo: u.abono.activo === true,
-        hasta: u.abono.hasta,
-        birthdate: u.birthdate || ''
-      });
+    const datos = JSON.parse(r.cuerpo);
+    if (!datos || datos.version !== 2 || !Array.isArray(datos.socios)) throw new Error('formato de socios no reconocido');
+    // Desfase de reloj: el servidor manda `generado`; si la Pi va muy desviada, aviso.
+    if (typeof datos.generado === 'number') {
+      const desfase = Date.now() - datos.generado;
+      if (Math.abs(desfase) > 20000) log(`AVISO: el reloj de la Pi va ${Math.round(desfase / 1000)} s ${desfase > 0 ? 'adelantado' : 'atrasado'} respecto a la web. Revisa NTP (los QR dependen de la hora).`);
     }
-    // Salvaguarda: si la web devuelve 0 socios (p. ej. Render se reinició y se
-    // vació el estado) pero ya teníamos caché, la conservamos para no denegar a
-    // todo el mundo por un vaciado temporal de la web.
+    const nuevos = datos.socios.map((s) => ({
+      id: String(s.id), nombre: s.nombre,
+      nfcUid: s.nfcUid ? String(s.nfcUid) : null,
+      nfcId: s.nfcId || null,
+      qrUid: s.qrUid ? String(s.qrUid) : null,
+      qrSeed: s.qrSeed || null,
+      activo: s.activo === true,
+      hasta: String(s.hasta || '1970-01-01'),
+      birthdate: s.birthdate || '',
+      gym: s.gym || null
+    }));
+    // Salvaguarda: si la web devuelve 0 socios pero ya teníamos caché, la
+    // conservamos (un vaciado temporal de la web no debe dejar a nadie fuera).
     if (nuevos.length === 0 && socios.length > 0) {
       log(`La web devolvió 0 socios; se conserva la caché anterior (${socios.length}).`);
       return;
     }
     socios = nuevos;
+    etagSocios = (r.cabeceras && r.cabeceras.etag) || null;
     indexar();
     guardarCache();
     log(`Sincronizados ${socios.length} socios con carnet desde la web.`);
   } catch (e) {
     log(`Sin conexión con la web ${cfg.WEB} (${e.message}); se sigue con la caché local (${socios.length} socios).`);
+  } finally {
+    sincronizando = false;
+    if (ultimaSyncOk && Date.now() - ultimaSyncOk > 30 * 60e3) log('AVISO: llevo más de 30 min sin poder sincronizar con la web.');
   }
 }
 
 /* ---------- Validación (misma lógica que la web) ---------- */
 
 function validar(ident, metodo, direccion) {
-  const dir = direccion === 'salida' ? 'salida' : 'entrada';
   const u = porUid.get(ident) || porNfcId.get(ident);
-  if (!u) return { usuarioId: null, resultado: 'denegado', motivo: 'Carnet no reconocido', direccion: dir, raw: ident, metodo };
-  if (dir === 'salida') return { usuarioId: u.id, resultado: 'ok', motivo: 'Salida registrada', direccion: dir, raw: ident, metodo, nombre: u.nombre };
-  if (!u.activo) return { usuarioId: u.id, resultado: 'denegado', motivo: 'Abono dado de baja', direccion: dir, raw: ident, metodo, nombre: u.nombre };
-  if (u.hasta < hoy()) return { usuarioId: u.id, resultado: 'denegado', motivo: `Abono caducado el ${u.hasta}`, direccion: dir, raw: ident, metodo, nombre: u.nombre };
+  if (!u) return { usuarioId: null, resultado: 'denegado', motivo: 'Carnet no reconocido', direccion: direccion === 'salida' ? 'salida' : 'entrada', raw: ident, metodo };
+  return validarSocio(u, metodo, direccion, ident);
+}
+
+/* Reglas de acceso para un socio ya identificado (mismas que el servidor):
+   salida siempre; entrada exige abono activo, en vigor y edad mínima.
+   La hora de gimnasio asignada solo AVISA (el torno da paso a todo el complejo:
+   pistas, clases, recepción), salvo MSD_GYM_MODO=denegar. */
+function validarSocio(u, metodo, direccion, raw) {
+  const dir = direccion === 'salida' ? 'salida' : 'entrada';
+  const base = { usuarioId: u.id, direccion: dir, raw, metodo, nombre: u.nombre, avisos: [] };
+  if (dir === 'salida') return Object.assign(base, { resultado: 'ok', motivo: 'Salida registrada' });
+  if (!u.activo) return Object.assign(base, { resultado: 'denegado', motivo: 'Abono dado de baja' });
+  if (u.hasta < hoy()) return Object.assign(base, { resultado: 'denegado', motivo: `Abono caducado el ${u.hasta}` });
   const edad = edadDe(u.birthdate);
-  if (edad !== null && edad < cfg.EDAD_MINIMA) return { usuarioId: u.id, resultado: 'denegado', motivo: `Acceso a partir de ${cfg.EDAD_MINIMA} años`, direccion: dir, raw: ident, metodo, nombre: u.nombre };
-  return { usuarioId: u.id, resultado: 'ok', motivo: 'Abono en vigor', direccion: dir, raw: ident, metodo, nombre: u.nombre };
+  if (edad !== null && edad < cfg.EDAD_MINIMA) return Object.assign(base, { resultado: 'denegado', motivo: `Acceso a partir de ${cfg.EDAD_MINIMA} años` });
+  if (u.gym && u.gym.franja) {
+    const p = partesLocales(new Date());
+    const ahoraMin = Number(p.hour) * 60 + Number(p.minute);
+    const [hi, mi] = u.gym.franja.split(':').map(Number);
+    const [hf, mf] = String(u.gym.fin || '').split(':').map(Number);
+    const ini = hi * 60 + mi - 15, fin = (Number.isFinite(hf) ? hf * 60 + mf : ini + 75);
+    if (ahoraMin < ini || ahoraMin > fin) {
+      const aviso = `Fuera de su hora de gimnasio (${u.gym.franja}–${u.gym.fin || '?'})`;
+      if (cfg.GYM_MODO === 'denegar') return Object.assign(base, { resultado: 'denegado', motivo: aviso });
+      base.avisos.push(aviso);
+    }
+  }
+  return Object.assign(base, { resultado: 'ok', motivo: 'Abono en vigor' });
 }
 
 /* Decide qué es lo leído y lo valida ("match-first", igual que la web):
@@ -185,14 +251,16 @@ function procesarLectura(texto, direccion) {
   // 1) Tarjeta/pulsera física conocida (su UID va tal cual).
   if (porUid.get(v) || porNfcId.get(v)) return validar(v, 'nfc', direccion);
 
-  // 2) Token dinámico numérico (QR rotatorio del carnet).
+  // 2) Token dinámico numérico (QR rotatorio del carnet). El prefijo es el
+  //    identificador PROPIO del QR (qrUid), no el UID físico de la pulsera: un
+  //    QR con el UID desnudo no abre, y el UID físico nunca se muestra en la app.
   if (token.esDinamico(v)) {
     const r = token.validar(v, (uid) => {
-      const s = porUid.get(uid);
+      const s = porQrUid.get(uid);
       return s && s.qrSeed ? s.qrSeed : null;
     });
-    if (r.ok) return validar(r.nfcUid, 'qr', direccion);
-    const s = r.nfcUid ? porUid.get(r.nfcUid) : null;
+    const s = r.uid ? porQrUid.get(r.uid) : null;
+    if (r.ok && s) return validarSocio(s, 'qr', direccion, v);
     return { usuarioId: s ? s.id : null, resultado: 'denegado', motivo: r.motivo, direccion, raw: v, metodo: 'qr', nombre: s ? s.nombre : null };
   }
 
@@ -272,44 +340,61 @@ function cargarCola() {
   if (cola.length) log(`Cola de accesos pendientes de enviar: ${cola.length}.`);
 }
 function guardarCola() {
-  try { fs.writeFileSync(COLA_FICHERO, JSON.stringify(cola)); }
+  try { escribirJsonAtomico(COLA_FICHERO, cola); }
   catch (e) { log('No se pudo guardar la cola de accesos:', e.message); }
 }
 
+/* Envía un evento al endpoint del torno. Cualquier 2xx es éxito (201 nuevo,
+   200 ya existía = reenvío idempotente). Lanza con `reintentable` según el
+   fallo: red/timeout/5xx/401/429 → reintentar; otro 4xx → descartar. */
 async function enviarEvento(evento) {
-  const r = await pedir('POST', `${cfg.WEB}/api/acceso`, { evento });
-  if (r.status !== 201) throw new Error('HTTP ' + r.status + ' ' + (r.cuerpo || ''));
+  let r;
+  try { r = await pedir('POST', `${cfg.WEB}/api/torno/acceso`, { evento }); }
+  catch (e) { throw Object.assign(new Error(e.message), { reintentable: true }); }
+  if (r.status >= 200 && r.status < 300) return;
+  const reintentable = r.status >= 500 || r.status === 401 || r.status === 403 || r.status === 429 || r.status === 404;
+  throw Object.assign(new Error('HTTP ' + r.status + ' ' + (r.cuerpo || '').slice(0, 120)), { reintentable });
 }
 
 async function registrar(res) {
-  // ts = momento REAL del paso (se conserva aunque se reenvíe más tarde).
+  // ts = momento REAL del paso (se conserva aunque se reenvíe más tarde); id
+  // único para que los reenvíos no dupliquen en el servidor.
   const evento = {
+    id: require('crypto').randomUUID().replace(/-/g, ''),
     ts: Date.now(),
     usuarioId: res.usuarioId, metodo: res.metodo, resultado: res.resultado,
-    motivo: res.motivo, direccion: res.direccion, raw: res.raw
+    motivo: res.motivo, direccion: res.direccion, raw: res.raw,
+    avisos: res.avisos || []
   };
   try {
     await enviarEvento(evento);
   } catch (e) {
+    if (e.reintentable === false) { log(`  ! la web rechazó el acceso (${e.message}); no se reintenta.`); return; }
+    if (cola.length >= cfg.COLA_MAX) { cola.shift(); log('  ! cola llena: se descarta el acceso más antiguo.'); }
     cola.push(evento);
     guardarCola();
     log(`  ! web no disponible: acceso ENCOLADO para reenviar (${cola.length} en cola).`);
   }
 }
 
-/* Reenvía los accesos encolados. Se llama al arrancar y tras cada sync exitosa. */
+/* Reenvía los accesos encolados. Se llama al arrancar y tras cada sync exitosa.
+   Los que llegan mientras se vacía se conservan (no se pierden por la carrera). */
+let vaciando = false;
 async function vaciarCola() {
-  if (!cola.length) return;
-  const pendientes = cola.slice();
-  const quedan = [];
-  for (const evento of pendientes) {
-    try { await enviarEvento(evento); }
-    catch (e) { quedan.push(evento); }
-  }
-  cola = quedan;
-  guardarCola();
-  const enviados = pendientes.length - quedan.length;
-  if (enviados > 0) log(`Reenviados ${enviados} accesos de la cola.${quedan.length ? ' Quedan ' + quedan.length + '.' : ''}`);
+  if (!cola.length || vaciando) return;
+  vaciando = true;
+  try {
+    const pendientes = cola.slice();
+    const quedan = [];
+    for (const evento of pendientes) {
+      try { await enviarEvento(evento); }
+      catch (e) { if (e.reintentable !== false) quedan.push(evento); else log(`  ! evento de la cola rechazado (${e.message}); se descarta.`); }
+    }
+    cola = quedan.concat(cola.slice(pendientes.length));   // los añadidos durante el vaciado
+    guardarCola();
+    const enviados = pendientes.length - quedan.length;
+    if (enviados > 0) log(`Reenviados ${enviados} accesos de la cola.${cola.length ? ' Quedan ' + cola.length + '.' : ''}`);
+  } finally { vaciando = false; }
 }
 
 /* ---------- Manejo de una lectura completa ---------- */

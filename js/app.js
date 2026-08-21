@@ -1270,7 +1270,21 @@
 
   function htmlCarnet(u) {
     const abono = u.abono;
+    const servidor = MSDAuth.modoServidor;   // en producción el abono lo gestiona recepción
     if (!abono) {
+      if (servidor) {
+        return `
+          <div class="carnet-alta">
+            <p><strong>Todavía no tienes abono del gimnasio.</strong> El alta se hace
+            <strong>presencialmente en recepción</strong> (te asignan tu pulsera y tu hora).
+            En cuanto la tengas, aquí aparecerá tu carnet con el código QR para entrar por el torno.
+            Mientras tanto puedes reservar pistas con normalidad.</p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">
+              <a class="boton boton--primario" href="#/reservar">Reservar una pista</a>
+              <button class="boton boton--secundario" type="button" data-pedir-info>Pedir información</button>
+            </div>
+          </div>`;
+      }
       // Sin actividades no hay QR: interfaz normal, con la puerta abierta a apuntarse
       return `
         <div class="carnet-alta">
@@ -1287,7 +1301,7 @@
         </div>`;
     }
 
-    const vigente = abono.activo && abono.hasta >= MSDAuth.hoy();
+    const vigente = abono.vigente !== undefined ? abono.vigente : (abono.activo && abono.hasta >= MSDAuth.hoy());
     const estado = !abono.activo
       ? '<span class="insignia insignia--llena">De baja</span>'
       : (vigente
@@ -1295,6 +1309,42 @@
         : `<span class="insignia insignia--pocas">Caducado el ${esc(legibleDia(abono.hasta))}</span>`);
 
     const idAcceso = abono.nfcUid || abono.nfcId || '';
+    const textoPulsera = servidor ? (abono.tienePulsera ? `Pulsera ${esc(idAcceso)}` : 'Sin pulsera asignada') : esc(idAcceso);
+
+    if (servidor) {
+      // Producción: el carnet es de CONSULTA (alta, renovación, baja y pulsera se hacen en recepción)
+      return `
+        <div class="carnet">
+          <div class="carnet__tarjeta">
+            <div class="carnet__cima">
+              <span class="marca__sello" aria-hidden="true"><svg width="22" height="22"><use href="#i-arco"/></svg></span>
+              <div><strong>Carnet deportivo</strong><span>Complejo Prado de la Feria</span></div>
+            </div>
+            <p class="carnet__nombre">${esc(u.nombre)}</p>
+            <div class="carnet__qr">
+              ${vigente
+                ? '<div id="carnet-qr" class="carnet__qr-lienzo" role="img" aria-label="Código QR dinámico del carnet, se renueva cada 30 segundos"><span class="campo__ayuda">Generando código…</span></div>'
+                : `<div class="carnet__qr-apagado">${icono('i-info', 26)}<span>QR desactivado</span></div>`}
+            </div>
+            ${vigente ? '<p class="carnet__caduca">Código dinámico · se renueva en <strong id="carnet-qr-seg">30</strong>&nbsp;s</p>' : ''}
+            <p class="carnet__codigo">${textoPulsera}</p>
+            ${estado}
+          </div>
+          <div class="carnet__lado">
+            <div class="pulsera ${vigente && abono.tienePulsera ? '' : 'pulsera--apagada'}" role="img" aria-label="${textoPulsera}">
+              <span class="pulsera__chip" aria-hidden="true"></span>
+              <span class="pulsera__ondas" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="pulsera__texto">${esc(idAcceso || '—')}</span>
+            </div>
+            <p class="paso__ayuda">Tu pulsera y tu QR abren el torno mientras el abono esté en vigor.
+              ${abono.autoRenovar ? 'Renovación automática mensual activada.' : 'La renovación se hace en recepción.'}
+              Si pierdes la pulsera o el móvil, avisa en recepción para anularlos.</p>
+            <div class="carnet__acciones">
+              ${vigente ? '<button class="boton boton--secundario" type="button" data-imprimir-carnet>Imprimir carnet</button>' : ''}
+            </div>
+          </div>
+        </div>`;
+    }
 
     return `
       <div class="carnet">
@@ -1349,9 +1399,17 @@
     let ultimoPayload = '';
     const tick = async () => {
       if (!document.body.contains(cont)) { clearInterval(carnetQrTimer); return; }
-      const usuario = MSDAuth.buscarPorId(u.id) || u;
+      const usuario = MSDAuth.modoServidor ? u : (MSDAuth.buscarPorId(u.id) || u);
       const carnet = await MSDAuth.cargaQrDinamica(usuario);
       if (!carnet) return;
+      if (carnet.agotado) {
+        // Sin cobertura y sin códigos guardados: no hay QR posible ahora mismo
+        if (ultimoPayload !== 'agotado') {
+          ultimoPayload = 'agotado';
+          cont.innerHTML = `<div class="carnet__qr-apagado">${icono('i-info', 26)}<span>Sin cobertura: acerca tu pulsera${carnet.nfcUltimos4 ? ' (···' + esc(carnet.nfcUltimos4) + ')' : ''} o pide ayuda en recepción</span></div>`;
+        }
+        return;
+      }
       if (carnet.payload !== ultimoPayload) {
         ultimoPayload = carnet.payload;
         cont.innerHTML = MSDQr.comoSvg(carnet.payload);
@@ -1390,15 +1448,21 @@
       }
     }
 
-    const mios = MSDAuth.accesos().filter((a) => a.usuarioId === u.id).slice(0, 8);
-    $('#perfil-accesos').innerHTML = mios.length
+    const pintarAccesosPerfil = (mios) => { $('#perfil-accesos').innerHTML = mios.length
       ? `<ul class="lista-accesos">${mios.map((a) => `
           <li>
             <span class="lista-accesos__icono ${a.resultado === 'ok' ? 'ok' : 'mal'}">${icono(a.resultado === 'ok' ? 'i-check' : 'i-x', 15)}</span>
             <span>${esc(fmtHoraCorta.format(new Date(a.ts)))} · ${a.direccion === 'salida' ? 'Salida' : 'Entrada'} · ${a.metodo === 'qr' ? 'QR' : 'Pulsera NFC'}</span>
             <span class="lista-accesos__motivo">${esc(a.motivo)}</span>
           </li>`).join('')}</ul>`
-      : `<div class="aviso-vacio"><strong>Sin accesos todavía</strong>Cuando pases el torno con tu QR o pulsera, aparecerán aquí.</div>`;
+      : `<div class="aviso-vacio"><strong>Sin accesos todavía</strong>Cuando pases el torno con tu QR o pulsera, aparecerán aquí.</div>`; };
+    if (MSDAuth.modoServidor) {
+      // Producción: los accesos vienen del servidor (solo los propios)
+      MSDApi.get('/api/mi/accesos').then((r) => { if (r.ok && document.body.contains($('#perfil-accesos'))) pintarAccesosPerfil((r.datos.accesos || []).slice(0, 8)); });
+      pintarAccesosPerfil([]);
+    } else {
+      pintarAccesosPerfil(MSDAuth.accesos().filter((a) => a.usuarioId === u.id).slice(0, 8));
+    }
   }
 
   function conectarPerfil() {
@@ -1512,11 +1576,15 @@
     }
     // Aforo REAL a partir del torno: entradas − salidas de hoy.
     // Con lector de entrada y de salida, esta cifra es exacta, no una estimación.
-    const { dentro, entradas, salidas, aforoMax } = MSDAuth.aforoHoy();
-    cifra.textContent = `${Math.min(dentro, aforoMax)}/${aforoMax}`;
-    $('#dato-aforo-texto').textContent = salidas
-      ? `personas ahora en la sala · hoy ${entradas} entradas y ${salidas} salidas`
-      : `personas ahora en la sala · ${entradas} entradas hoy`;
+    const pintar = ({ dentro, entradas, salidas, aforoMax }) => {
+      cifra.textContent = `${Math.min(dentro, aforoMax)}/${aforoMax}`;
+      $('#dato-aforo-texto').textContent = salidas
+        ? `personas ahora en la sala · hoy ${entradas} entradas y ${salidas} salidas`
+        : `personas ahora en la sala · ${entradas} entradas hoy`;
+    };
+    if (MSDAuth.modoServidor) {
+      MSDApi.get('/api/aforo').then((r) => { if (r.ok) pintar(r.datos); else pintar(MSDAuth.aforoHoy()); });
+    } else pintar(MSDAuth.aforoHoy());
   }
 
   /* ==========================================================================

@@ -24,6 +24,8 @@ const tornoAuth = require('./lib/torno-auth');
 const limite = require('./lib/limite');
 const correo = require('./lib/correo');
 const authRutas = require('./lib/auth-rutas');
+const abonosRutas = require('./lib/abonos-rutas');
+const tornoRutas = require('./lib/torno-rutas');
 
 /* ---------- API nueva (F2+): router con sesión en servidor ----------
    Convive con las rutas legadas de abajo hasta que cada pantalla migre. Solo se
@@ -34,6 +36,22 @@ const router = crearRouter({
   autenticarTorno: (req) => Promise.resolve(tornoAuth.autenticar(req))
 });
 authRutas.montar(router);
+authRutas.anadirExtras(abonosRutas.extrasUsuario);   // /api/auth/yo incluye el abono
+/* Un acceso nuevo (torno o panel) se refleja también en el registro legado
+   msd_accesos y se difunde por SSE, así el panel/monitor actuales lo ven en vivo
+   hasta que migren a la API (F6). */
+function difundirAcceso(ev) {
+  try {
+    let lista; try { lista = JSON.parse(estado.msd_accesos || '[]'); } catch (e) { lista = []; }
+    if (!Array.isArray(lista)) lista = [];
+    lista.unshift({ ts: ev.ts, usuarioId: ev.usuarioId, metodo: ev.metodo, resultado: ev.resultado, motivo: ev.motivo, direccion: ev.direccion, raw: ev.raw || '' , nombre: ev.nombre || null });
+    estado.msd_accesos = JSON.stringify(lista.slice(0, 300));
+    persistir();
+    difundir('msd_accesos', estado.msd_accesos, null);
+  } catch (e) { console.error('[difundirAcceso]', e.message); }
+}
+tornoRutas.montar(router, { difundirAcceso });
+abonosRutas.montar(router, { difundirAcceso });
 
 /* En local usa 8137; en un host (Render, Railway, Fly…) se toma el puerto que
    inyecta la plataforma por la variable PORT. */
@@ -124,7 +142,7 @@ const servidor = http.createServer((req, res) => {
 
   // 1) API nueva (router con sesión en servidor). Si la ruta es suya, la atiende
   //    él (incluidos 401/403/404 de /api/auth/*). Si no, sigue el flujo legado.
-  if (ruta.startsWith('/api/auth/') || ruta.startsWith('/api/torno/') || ruta.startsWith('/api/mi/') || ruta.startsWith('/api/admin/') || ruta.startsWith('/api/monitor/')) {
+  if (ruta.startsWith('/api/auth/') || ruta.startsWith('/api/torno/') || ruta.startsWith('/api/mi/') || ruta.startsWith('/api/admin/') || ruta.startsWith('/api/monitor/') || ruta === '/api/aforo') {
     if (!bd.configurada()) { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{"error":"La API de cuentas necesita base de datos (variables MSD_DB_*)."}'); return; }
     const ip = limite.ipCliente(req);
     if (!limite.comprobar('apiIp', ip).permitido) { res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '30' }); res.end('{"error":"Demasiadas peticiones","codigo":"LIMITE"}'); return; }
@@ -260,6 +278,10 @@ function atender(req, res, ruta) {
       estado.msd_accesos = JSON.stringify(lista);
       persistir();
       difundir('msd_accesos', estado.msd_accesos, null);
+      // F3: además queda en la tabla `accesos` (histórico real) si hay BD.
+      if (bd.configurada() && esquemaVersion >= 1) {
+        tornoRutas.registrarAcceso(evento, { origen: 'torno', dispositivo: 'legado' }).catch((err) => console.error('[accesos] tabla:', err.message));
+      }
       res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, evento }));
     });

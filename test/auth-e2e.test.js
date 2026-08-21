@@ -144,12 +144,16 @@ if (!HAY_BD) {
     assert.equal(u.fallos_login, 0); assert.equal(u.bloqueado_hasta, null);
   });
 
-  test('recuperar: siempre 202; el token sirve una vez; email desconocido no revienta', async () => {
+  test('recuperar: siempre 202; una clave que NO pasa la política no quema el token; el token sirve una vez', async () => {
     cookie = '';
     assert.equal((await pedir('POST', '/api/auth/recuperar', { email: 'nadie@correo.es' }, CSRF)).status, 202);
     assert.equal((await pedir('POST', '/api/auth/recuperar', { email: 'carmen@correo.es' }, CSRF)).status, 202);
     await new Promise((r2) => setTimeout(r2, 300));
     const tok = ultimoToken('restablecer');
+    // clave que contiene el nombre → 400 por política, y el enlace DEBE seguir valiendo
+    const debil = await pedir('POST', '/api/auth/restablecer', { token: tok, clave: 'carmen tiene una clave larga' }, CSRF);
+    assert.equal(debil.status, 400); assert.equal(debil.body.campo, 'clave');
+    assert.equal(cookie, '');
     const r1 = await pedir('POST', '/api/auth/restablecer', { token: tok, clave: 'y otra clave larga distinta' }, CSRF);
     assert.equal(r1.status, 200);
     cookie = '';

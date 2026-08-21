@@ -1340,7 +1340,8 @@
         const qr = jsQR(imagen.data, lienzo.width, lienzo.height);
         if (qr && qr.data && qr.data !== ultimaLectura) {
           ultimaLectura = qr.data;
-          Promise.resolve(MSDAuth.validarAccesoQr(qr.data, direccionTorno())).then(reaccionTorno);
+          if (MSDAuth.modoServidor && window.__msdValidarLectura) window.__msdValidarLectura(qr.data);
+          else Promise.resolve(MSDAuth.validarAccesoQr(qr.data, direccionTorno())).then(reaccionTorno);
           setTimeout(() => { ultimaLectura = ''; }, 3000); // re-escaneo tras 3 s
         }
       }
@@ -1516,6 +1517,291 @@
   // Cerrar el aviso en vivo a mano
   const cerrarVivo = $('#acceso-vivo-cerrar');
   if (cerrarVivo) cerrarVivo.addEventListener('click', () => { $('#acceso-vivo').hidden = true; });
+
+  /* ==========================================================================
+     MODO SERVIDOR (F3): Abonados y Torno sobre la API (/api/admin/*)
+     Se activa cuando MSDAuth.modoServidor es true (hay BD). Sustituye las
+     funciones legadas de estas dos secciones; el resto del panel sigue con
+     el estado legado hasta F4–F6.
+     ========================================================================== */
+  let usuariosApi = [];            // última lista de /api/admin/usuarios (vistaUsuarioAdmin + abono)
+  let filtroAbonoApi = '';          // ''|vigente|caducado|sin
+  const diaApi = (s) => (s ? String(s).slice(0, 10) : '');
+  const porIdApi = (id) => usuariosApi.find((u) => String(u.id) === String(id));
+
+  async function cargarUsuariosApi() {
+    const q = new URLSearchParams();
+    if (busquedaAbonados.trim()) q.set('q', busquedaAbonados.trim());
+    if (filtroAbonoApi) q.set('abono', filtroAbonoApi);
+    const r = await MSDApi.get('/api/admin/usuarios?' + q.toString());
+    if (!r.ok) { avisar(r.error, 'error'); return []; }
+    usuariosApi = r.datos.usuarios || [];
+    return usuariosApi;
+  }
+
+  async function pintarAbonadosApi() {
+    const cont = $('#admin-abonados');
+    cont.innerHTML = '<div class="aviso-vacio">Cargando…</div>';
+    const lista = await cargarUsuariosApi();
+    const controles = `
+      <div class="admin-filtros">
+        <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Buscar (nombre, correo o UID de pulsera)</span>
+          <input type="search" id="buscar-abonado" value="${esc(busquedaAbonados)}" placeholder="Nombre, correo o UID…" autocomplete="off"></label>
+        <label class="admin-filtros__campo"><span>Abono</span>
+          <select id="filtro-abono-api">
+            <option value="">Todos</option><option value="vigente"${filtroAbonoApi === 'vigente' ? ' selected' : ''}>En vigor</option>
+            <option value="caducado"${filtroAbonoApi === 'caducado' ? ' selected' : ''}>Caducado / de baja</option><option value="sin"${filtroAbonoApi === 'sin' ? ' selected' : ''}>Sin abono</option>
+          </select></label>
+      </div>`;
+    if (!lista.length) { cont.innerHTML = controles + '<div class="aviso-vacio"><strong>Sin resultados</strong></div>'; return; }
+    cont.innerHTML = controles + `
+      <div class="tabla-envoltura" tabindex="0" role="region" aria-label="Tabla desplazable">
+      <table class="tabla">
+        <thead><tr><th scope="col">Persona</th><th scope="col">Contacto</th><th scope="col">Abono</th><th scope="col">Pulsera</th><th scope="col">Rol</th><th scope="col"><span class="visualmente-oculto">Acciones</span></th></tr></thead>
+        <tbody>${lista.map((u) => {
+          const a = u.abono;
+          const estado = !a || (!a.hasta && !a.qrUid) ? '<span class="insignia insignia--pocas">Sin abono</span>'
+            : a.vigente ? `<span class="insignia insignia--plazas">Hasta ${esc(diaApi(a.hasta))}</span>`
+            : a.activo ? `<span class="insignia insignia--llena">Caducado ${esc(diaApi(a.hasta))}</span>` : '<span class="insignia insignia--llena">De baja</span>';
+          const pulsera = a && a.nfcUid ? `···${esc(String(a.nfcUid).slice(-4))} <button class="boton--texto" type="button" data-api-ver-uid="${u.id}" title="Ver UID completo">ver</button>` : (a && a.qrUid ? '<span style="color:var(--tinta-suave)">sin pulsera</span>' : '—');
+          return `<tr>
+            <td data-etiqueta="Persona"><strong>${esc(u.nombre)}</strong>${u.verificado ? '' : ' <span class="insignia insignia--pocas" title="Correo sin confirmar">sin verificar</span>'}</td>
+            <td data-etiqueta="Contacto">${esc(u.email)}<br><span style="color:var(--tinta-suave)">${esc(u.telefono || '—')}</span></td>
+            <td data-etiqueta="Abono">${estado}${a && a.autoRenovar ? '<br><small>renovación automática</small>' : ''}</td>
+            <td data-etiqueta="Pulsera">${pulsera}</td>
+            <td data-etiqueta="Rol">${esc(u.rol)}</td>
+            <td data-etiqueta="Acciones">
+              ${a && a.vigente
+                ? `<button class="boton--texto" type="button" data-api-renovar="${u.id}" style="color:var(--verde)">Renovar</button>
+                   <button class="boton--texto" type="button" data-api-baja="${u.id}">Baja</button>`
+                : `<button class="boton--texto" type="button" data-api-alta="${u.id}" style="color:var(--verde)">${a && a.hasta ? 'Reactivar' : 'Dar de alta'}</button>`}
+              <button class="boton--texto" type="button" data-api-gestionar="${u.id}" style="color:var(--anil)">Gestionar</button>
+            </td></tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+  }
+
+  function abrirEditorApi(id) {
+    const u = porIdApi(id); if (!u) return;
+    const a = u.abono || {};
+    const cont = $('#editor-usuario');
+    cont.hidden = false;
+    cont.innerHTML = `
+      <form class="formulario" data-editor-api="${u.id}" aria-label="Editar a ${esc(u.nombre)}">
+        <h3 class="etiqueta-grupo">Editando a ${esc(u.nombre)}</h3>
+        <div class="admin-filtros">
+          <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Nombre</span><input id="ea-nombre" type="text" value="${esc(u.nombre)}" minlength="3"></label>
+          <label class="admin-filtros__campo"><span>Teléfono</span><input id="ea-telefono" type="tel" value="${esc(u.telefono || '')}"></label>
+          <label class="admin-filtros__campo"><span>Fecha de nacimiento (edad mín. 16)</span><input id="ea-nacimiento" type="date" value="${esc(u.birthdate || '')}"></label>
+          <label class="admin-filtros__campo"><span>Rol</span>
+            <select id="ea-rol"><option value="vecino"${u.rol === 'vecino' ? ' selected' : ''}>Vecino/a</option><option value="monitor"${u.rol === 'monitor' ? ' selected' : ''}>Monitor/a</option><option value="admin"${u.rol === 'admin' ? ' selected' : ''}>Administración</option></select></label>
+        </div>
+        <h3 class="etiqueta-grupo" style="margin-top:18px">Abono y carnet (gestión presencial)</h3>
+        <div class="admin-filtros">
+          <label class="admin-filtros__campo"><span>Meses a dar de alta / añadir</span><input id="ea-meses" type="number" min="1" max="12" value="1"></label>
+          <label class="admin-filtros__campo" style="align-self:end"><input id="ea-auto" type="checkbox"${a.autoRenovar ? ' checked' : ''}> Renovación automática</label>
+          <label class="admin-filtros__campo"><span>UID de la pulsera (decimal)</span><input id="ea-uid" type="text" inputmode="numeric" value="${esc(a.nfcUid || '')}" placeholder="pásala por el lector en «modo alta»"></label>
+          <p class="campo__ayuda" style="align-self:end">${a.qrUid ? 'Carnet emitido · QR id ' + esc(a.qrUid) : 'Sin carnet todavía (se emite al dar de alta el abono).'}</p>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
+          <button class="boton boton--primario" type="submit">Guardar datos</button>
+          <button class="boton boton--secundario" type="button" data-api-alta-editor="${u.id}">${a.vigente ? 'Añadir meses' : 'Dar de alta el abono'}</button>
+          <button class="boton boton--secundario" type="button" data-api-pulsera="${u.id}">Guardar pulsera</button>
+          ${a.nfcUid ? `<button class="boton--texto" type="button" data-api-liberar="${u.id}">Liberar pulsera</button>` : ''}
+          ${a.qrUid ? `<button class="boton--texto" type="button" data-api-rotar="${u.id}">Renovar QR (móvil perdido)</button>` : ''}
+          ${u.verificado ? '' : `<button class="boton--texto" type="button" data-api-verificar="${u.id}">Marcar correo verificado</button>`}
+          <button class="boton--texto" type="button" data-api-clave="${u.id}">Enviar enlace de contraseña</button>
+          <button class="boton boton--secundario" type="button" data-cerrar-editor>Cerrar</button>
+          <button class="boton--texto" type="button" data-api-eliminar="${u.id}">Eliminar la cuenta</button>
+        </div>
+        <p class="campo__error" id="ea-error" role="alert" hidden></p>
+      </form>`;
+    cont.scrollIntoView({ block: 'nearest' });
+    $('#ea-nombre').focus();
+  }
+  const errorEditorApi = (m) => { const e = $('#ea-error'); if (e) { e.textContent = m; e.hidden = !m; } };
+  async function trasAccionApi(r, mensajeOk) {
+    if (!r.ok) { errorEditorApi(r.error); avisar(r.error, 'error'); return false; }
+    if (mensajeOk) avisar(mensajeOk);
+    await pintarAbonadosApi();
+    return true;
+  }
+
+  // Submit del editor (datos personales + rol)
+  document.addEventListener('submit', async (ev) => {
+    const form = ev.target.closest('[data-editor-api]'); if (!form) return;
+    ev.preventDefault();
+    const id = form.dataset.editorApi; const u = porIdApi(id);
+    errorEditorApi('');
+    const r = await MSDApi.patch(`/api/admin/usuarios/${id}`, { nombre: $('#ea-nombre').value.trim(), telefono: $('#ea-telefono').value.trim(), birthdate: $('#ea-nacimiento').value || undefined });
+    if (!r.ok) { errorEditorApi(r.error); return; }
+    const rol = $('#ea-rol').value;
+    if (u && rol !== u.rol) { const rr = await MSDApi.patch(`/api/admin/usuarios/${id}/rol`, { rol }); if (!rr.ok) { errorEditorApi(rr.error); return; } }
+    avisar('Datos guardados.');
+    await pintarAbonadosApi();
+    const u2 = porIdApi(id); if (u2) abrirEditorApi(id);
+  });
+
+  // Clicks de la sección Abonados (API)
+  document.addEventListener('click', async (ev) => {
+    if (!MSDAuth.modoServidor) return;
+    const b = ev.target.closest('[data-api-gestionar],[data-api-alta],[data-api-renovar],[data-api-baja],[data-api-alta-editor],[data-api-pulsera],[data-api-liberar],[data-api-rotar],[data-api-verificar],[data-api-clave],[data-api-eliminar],[data-api-ver-uid]');
+    if (!b) return;
+    const d = b.dataset;
+    if (d.apiGestionar) { abrirEditorApi(d.apiGestionar); return; }
+    if (d.apiVerUid) { const u = porIdApi(d.apiVerUid); if (u && u.abono) { avisar(`UID de ${u.nombre}: ${u.abono.nfcUid}`); } return; }
+    if (d.apiAlta || d.apiRenovar) {
+      const id = d.apiAlta || d.apiRenovar;
+      const r = await MSDApi.post(`/api/admin/usuarios/${id}/abono`, { meses: 1 });
+      await trasAccionApi(r, d.apiAlta ? 'Abono dado de alta (1 mes) y carnet emitido.' : 'Abono renovado un mes.');
+      return;
+    }
+    if (d.apiBaja) {
+      const u = porIdApi(d.apiBaja);
+      const ok = await confirmar('¿Dar de baja el abono?', `El torno dejará de aceptar el carnet de ${u ? u.nombre : 'esta persona'} desde ahora.`, 'Sí, dar de baja');
+      if (!ok) return;
+      await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiBaja}/abono/baja`), 'Abono dado de baja.');
+      return;
+    }
+    if (d.apiAltaEditor) {
+      const meses = Math.max(1, Math.min(12, Number($('#ea-meses').value) || 1));
+      const uid = $('#ea-uid').value.trim();
+      const r = await MSDApi.post(`/api/admin/usuarios/${d.apiAltaEditor}/abono`, { meses, autoRenovar: $('#ea-auto').checked, nfcUid: uid || undefined });
+      if (await trasAccionApi(r, `Abono activo ${meses} mes/es${uid ? ' y pulsera asignada' : ''}.`)) abrirEditorApi(d.apiAltaEditor);
+      return;
+    }
+    if (d.apiPulsera) {
+      const uid = $('#ea-uid').value.trim();
+      if (!uid) { errorEditorApi('Escribe el UID de la pulsera (o pásala por el lector en modo alta).'); return; }
+      const r = await MSDApi.api('PUT', `/api/admin/usuarios/${d.apiPulsera}/carnet`, { nfcUid: uid, birthdate: $('#ea-nacimiento').value || undefined });
+      if (await trasAccionApi(r, 'Pulsera asignada.')) abrirEditorApi(d.apiPulsera);
+      return;
+    }
+    if (d.apiLiberar) { if (await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiLiberar}/carnet/liberar`), 'Pulsera liberada.')) abrirEditorApi(d.apiLiberar); return; }
+    if (d.apiRotar) {
+      const ok = await confirmar('¿Renovar el QR?', 'Los códigos QR anteriores dejarán de valer (útil si ha perdido el móvil). El socio verá el nuevo al abrir su perfil.', 'Sí, renovar');
+      if (!ok) return;
+      if (await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiRotar}/carnet/rotar-qr`), 'QR renovado.')) abrirEditorApi(d.apiRotar);
+      return;
+    }
+    if (d.apiVerificar) { if (await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiVerificar}/verificar`), 'Correo marcado como verificado.')) abrirEditorApi(d.apiVerificar); return; }
+    if (d.apiClave) { await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiClave}/clave`, {}), 'Enlace de contraseña enviado por correo.'); return; }
+    if (d.apiEliminar) {
+      const u = porIdApi(d.apiEliminar);
+      const ok = await confirmar('¿Eliminar esta cuenta?', `Se anonimizará la cuenta de ${u ? u.nombre : 'esta persona'}, se cancelarán sus reservas futuras y se liberará su pulsera. No se puede deshacer.`, 'Sí, eliminar');
+      if (!ok) return;
+      const r = await MSDApi.del(`/api/admin/usuarios/${d.apiEliminar}`);
+      if (await trasAccionApi(r, 'Cuenta eliminada.')) $('#editor-usuario').hidden = true;
+    }
+  });
+  document.addEventListener('change', (ev) => { if (MSDAuth.modoServidor && ev.target.id === 'filtro-abono-api') { filtroAbonoApi = ev.target.value; pintarAbonadosApi(); } });
+  document.addEventListener('input', (ev) => {
+    if (MSDAuth.modoServidor && ev.target.id === 'buscar-abonado') {
+      busquedaAbonados = ev.target.value;
+      clearTimeout(pintarAbonadosApi._t); pintarAbonadosApi._t = setTimeout(() => { const pos = ev.target.selectionStart; pintarAbonadosApi().then(() => { const c = $('#buscar-abonado'); if (c) { c.focus(); c.setSelectionRange(pos, pos); } }); }, 350);
+    }
+  });
+
+  // Crear usuario desde recepción (API): sin contraseña → invitación por correo
+  $('#form-crear-usuario').addEventListener('submit', async (ev) => {
+    if (!MSDAuth.modoServidor) return;    // el handler legado se encarga en modo local
+    ev.stopImmediatePropagation(); ev.preventDefault();
+    const nombre = $('#nuevo-nombre').value.trim(), email = $('#nuevo-email').value.trim(), claveTemporal = $('#nuevo-clave').value;
+    if (nombre.length < 3 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { avisar('Revisa nombre y correo.', 'error'); return; }
+    const r = await MSDApi.post('/api/admin/usuarios', { nombre, email, telefono: $('#nuevo-telefono').value, rol: $('#nuevo-rol').value, claveTemporal: claveTemporal || undefined });
+    if (!r.ok) { avisar(r.error, 'error'); return; }
+    avisar(claveTemporal ? `Cuenta de ${nombre} creada con contraseña temporal.` : `Cuenta de ${nombre} creada: le llegará un correo para elegir contraseña.`);
+    ev.target.reset();
+    pintarAbonadosApi();
+  }, true);   // captura: va antes que el handler legado
+
+  /* ---------- Torno (API): validar en servidor + modo alta + estado ---------- */
+  let modoAltaTimer = null;
+  async function pintarTornoApi() {
+    // selector de abonados → lista de la API (para "simular" ya no: se valida lo leído)
+    const sel = $('#torno-abonado');
+    if (sel) sel.innerHTML = '<option value="">(modo servidor: valida la lectura real con el campo de abajo o la cámara)</option>';
+    const est = await MSDApi.get('/api/admin/torno/estado');
+    const cont = $('#torno-api-estado');
+    if (cont && est.ok) {
+      const e = est.datos;
+      cont.innerHTML = e.tokenConfigurado
+        ? (e.enLinea ? `<span class="insignia insignia--plazas">Torno en línea</span> <small>${esc(e.nombre || '')} · hace ${Math.round((Date.now() - e.ultimoContacto) / 1000)} s${e.version ? ' · v' + esc(e.version) : ''}</small>`
+          : `<span class="insignia insignia--llena">Torno sin contacto</span> <small>${e.ultimoContacto ? 'último hace ' + Math.round((Date.now() - e.ultimoContacto) / 60000) + ' min' : 'todavía no se ha conectado con token'}</small>`)
+        : '<span class="insignia insignia--pocas">Sin token configurado</span> <small>Pon MSD_TOKEN_TORNO en el panel Node y en la Pi.</small>';
+    }
+    await pintarAccesosApi();
+  }
+  async function pintarAccesosApi() {
+    const r = await MSDApi.get('/api/admin/accesos');
+    const cont = $('#admin-accesos');
+    if (!r.ok) { cont.innerHTML = `<div class="aviso-vacio">${esc(r.error)}</div>`; return; }
+    const accesos = (r.datos.accesos || []).slice(0, 12);
+    if (!accesos.length) { cont.innerHTML = '<div class="aviso-vacio"><strong>Sin accesos registrados</strong></div>'; return; }
+    cont.innerHTML = `<div class="tabla-envoltura" tabindex="0" role="region" aria-label="Tabla desplazable"><table class="tabla">
+      <thead><tr><th scope="col">Momento</th><th scope="col">Persona</th><th scope="col">Sentido</th><th scope="col">Método</th><th scope="col">Resultado</th></tr></thead>
+      <tbody>${accesos.map((a) => `<tr>
+        <td data-etiqueta="Momento">${esc(fmtMomento.format(new Date(a.ts)))}${a.origen === 'panel' ? ' <small>(panel)</small>' : ''}</td>
+        <td data-etiqueta="Persona">${esc(a.nombre || 'Desconocido')}${a.nombre ? '' : (a.raw ? `<br><span style="color:var(--tinta-suave)">${esc(a.raw)}</span>` : '')}</td>
+        <td data-etiqueta="Sentido">${a.direccion === 'salida' ? '<span class="insignia">Salida</span>' : '<span class="insignia insignia--plazas">Entrada</span>'}</td>
+        <td data-etiqueta="Método">${a.metodo === 'qr' ? 'QR' : 'Pulsera NFC'}</td>
+        <td data-etiqueta="Resultado">${a.resultado === 'ok' ? `<span class="insignia insignia--plazas">${icono('i-check', 13)} Permitido</span>${(a.avisos || []).length ? ' <small style="color:var(--coral,#C75B3E)">' + esc(a.avisos.join(' · ')) + '</small>' : ''}` : `<span class="insignia insignia--llena">${icono('i-x', 13)} ${esc(a.motivo)}</span>`}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+  async function validarEnServidor(lectura) {
+    const r = await MSDApi.post('/api/admin/torno/validar', { lectura, direccion: direccionTorno() });
+    if (!r.ok) { avisar(r.error, 'error'); return; }
+    const res = r.datos;
+    reaccionTorno({ resultado: res.resultado, motivo: res.motivo, direccion: res.direccion, usuario: res.usuario || null });
+  }
+  async function modoAltaTick() {
+    const cont = $('#torno-api-alta'); if (!cont || cont.hidden) return;
+    const r = await MSDApi.get('/api/admin/torno/lecturas-desconocidas');
+    const lista = r.ok ? r.datos.lecturas : [];
+    $('#torno-api-alta-lista').innerHTML = lista.length
+      ? `<ul class="lista-accesos">${lista.map((l) => `<li><span><strong>${esc(l.raw)}</strong> · ${esc(fmtMomento.format(new Date(l.ts)))} · ${l.direccion}</span> <button class="boton--texto" type="button" data-api-copiar-uid="${esc(l.raw)}">Usar este UID</button></li>`).join('')}</ul>`
+      : '<p class="paso__ayuda">Pasa la pulsera nueva por el lector del torno: aparecerá aquí en unos segundos.</p>';
+  }
+
+  if (typeof MSDAuth !== 'undefined') {
+    MSDAuth.listo.then(() => {
+      if (!MSDAuth.modoServidor) return;
+      // Sustituye las secciones por su versión API
+      pintores.abonados = pintarAbonadosApi;
+      pintores.torno = pintarTornoApi;
+      // Torno: validación real en servidor; los botones "simular" dejan de tener sentido
+      const manual = $('#torno-validar-manual');
+      if (manual) { const nuevo = manual.cloneNode(true); manual.replaceWith(nuevo); nuevo.addEventListener('click', () => { const t = $('#torno-manual').value.trim(); if (!t) { avisar('Pega el contenido del QR o el UID.', 'error'); return; } validarEnServidor(t); }); }
+      ['torno-leer-nfc', 'torno-leer-qr'].forEach((id) => { const b = $('#' + id); if (b) b.hidden = true; });
+      // bloque estado + modo alta
+      const zona = $('#seccion-torno');
+      if (zona && !$('#torno-api-estado')) {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <div class="admin-seccion__cabecera" style="margin-top:8px"><h3 class="etiqueta-grupo">Estado del torno</h3><div id="torno-api-estado"><small>consultando…</small></div></div>
+          <div id="torno-api-alta" hidden style="margin:10px 0 14px">
+            <h3 class="etiqueta-grupo">Modo alta de pulseras</h3>
+            <p class="paso__ayuda">Las lecturas NO reconocidas de los últimos 5 minutos. Pasa la pulsera nueva por el torno, pulsa «Usar este UID» y guárdala en la ficha del socio (Abonados → Gestionar).</p>
+            <div id="torno-api-alta-lista"></div>
+          </div>
+          <button class="boton boton--secundario" type="button" id="torno-api-alta-toggle" style="margin-bottom:10px">Modo alta de pulseras</button>`;
+        zona.insertBefore(div, zona.firstChild.nextSibling);
+        $('#torno-api-alta-toggle').addEventListener('click', () => {
+          const c = $('#torno-api-alta'); c.hidden = !c.hidden;
+          clearInterval(modoAltaTimer);
+          if (!c.hidden) { modoAltaTick(); modoAltaTimer = setInterval(modoAltaTick, 3000); }
+        });
+        document.addEventListener('click', (ev) => {
+          const b = ev.target.closest('[data-api-copiar-uid]'); if (!b) return;
+          navigator.clipboard && navigator.clipboard.writeText(b.dataset.apiCopiarUid).catch(() => {});
+          const campo = $('#ea-uid'); if (campo) { campo.value = b.dataset.apiCopiarUid; campo.focus(); }
+          avisar(`UID ${b.dataset.apiCopiarUid} copiado. Pégalo en la ficha del socio (Abonados → Gestionar → pulsera).`);
+        });
+      }
+      // cámara: en modo servidor el resultado del QR se valida en servidor
+      window.__msdValidarLectura = validarEnServidor;
+    });
+  }
 
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* opcional */ });

@@ -12,6 +12,17 @@ module.exports = {
   // Web de gestión: de aquí se descargan los socios y aquí se registran accesos.
   WEB: process.env.MSD_WEB || 'http://localhost:8137',
 
+  /* Token de servicio del torno (F3): lo genera el admin y se pone igual en la
+     web (variable MSD_TOKEN_TORNO del panel Node de Plesk, con prefijo
+     'nombre:') y aquí (/etc/acceso-torno.env, solo el token). Sin él, la web
+     responde 401 y el torno sigue con su caché. */
+  TOKEN: (process.env.MSD_TOKEN_TORNO || '').replace(/^[^:]+:/, '').trim(),
+  TIMEOUT_MS: Number(process.env.MSD_TIMEOUT_MS || 8000),   // por petición a la web
+  COLA_MAX: 5000,                                          // accesos en cola offline (se descartan los más antiguos)
+  /* Hora de gimnasio asignada: 'avisar' (por defecto: el torno da paso a todo el
+     complejo y solo anota el aviso) o 'denegar' (solo si se decide expresamente). */
+  GYM_MODO: process.env.MSD_GYM_MODO === 'denegar' ? 'denegar' : 'avisar',
+
   /* Lectores publicados por el HF5122 (convertidor serie→TCP), un puerto por
      sentido. En desarrollo apuntan al lector simulado en localhost; en la
      instalación real el HF5122 está en su red propia con la Pi (10.10.100.x):
@@ -24,7 +35,7 @@ module.exports = {
   ],
 
   DEDUP_MS: 2000,             // lecturas idénticas dentro de esta ventana → una sola
-  SYNC_MS: 2 * 60 * 1000,     // cada cuánto se refresca la caché de socios
+  SYNC_MS: 60 * 1000,         // cada cuánto se refresca la caché de socios (con ETag: barato)
   RECONEXION_MS: 3000,        // espera entre reintentos de conexión al lector
 
   EDAD_MINIMA: 16,            // años
