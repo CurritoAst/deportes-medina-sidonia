@@ -6,7 +6,7 @@
 
 'use strict';
 
-const CACHE = 'msd-v3';
+const CACHE = 'msd-v4';
 const NUCLEO = [
   './',
   'index.html',
@@ -48,14 +48,24 @@ self.addEventListener('fetch', (ev) => {
   ev.respondWith(
     fetch(ev.request)
       .then((respuesta) => {
-        if (respuesta.ok && url.origin === location.origin) {
+        // Solo se cachea lo propio y nunca una respuesta que fije cookies
+        // (una sesión no debe quedar guardada en la caché del navegador).
+        if (respuesta.ok && url.origin === location.origin && !respuesta.headers.get('set-cookie')) {
           const copia = respuesta.clone();
           caches.open(CACHE).then((cache) => cache.put(ev.request, copia));
         }
         return respuesta;
       })
       .catch(() =>
-        caches.match(ev.request).then((guardada) => guardada || caches.match('index.html'))
+        caches.match(ev.request).then((guardada) => {
+          if (guardada) return guardada;
+          // Sin red y sin copia: solo las NAVEGACIONES (abrir una página) caen a
+          // index.html; un script/css/icono sin copia simplemente falla.
+          if (ev.request.mode === 'navigate' && !url.pathname.startsWith('/admin')) {
+            return caches.match('index.html');
+          }
+          return Response.error();
+        })
       )
   );
 });

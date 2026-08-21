@@ -7,6 +7,8 @@ data/estado.json
 # Caché local y cola de accesos del servicio (estado en tiempo de ejecución)
 acceso/cache-socios.json
 acceso/cola-accesos.json
+# Socios del lector simulado (UIDs/semillas locales, nunca al repo)
+acceso/mock-socios.json
 
 # Artefactos de desarrollo / pruebas
 .playwright-mcp/

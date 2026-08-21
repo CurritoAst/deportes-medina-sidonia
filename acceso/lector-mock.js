@@ -23,12 +23,25 @@ const net = require('net');
 const readline = require('readline');
 const token = require('./token');
 
-/* Socios de demostración (coinciden con los datos sembrados por la web). */
-const SOCIOS = {
-  carmen: { uid: '1399878112', seed: 'a1b2c3d4e5f60001' },
-  paco:   { uid: '0642119837', seed: 'a1b2c3d4e5f60002' },
-  lucia:  { uid: '1770233945', seed: 'a1b2c3d4e5f60003' }  // abono caducado
-};
+/* Socios de prueba para el mock. NO se publican UIDs ni semillas reales ni de
+   demo en el repositorio: se leen de un fichero local (no versionado)
+   acceso/mock-socios.json con la forma { "nombre": { "uid": "...", "seed": "..." } },
+   o de la variable MSD_MOCK_SOCIOS (mismo JSON). Sin fichero, el mock arranca
+   con un socio inventado al azar (válido solo para esta ejecución). */
+function cargarSociosMock() {
+  const fs = require('fs');
+  const path = require('path');
+  const crudo = process.env.MSD_MOCK_SOCIOS
+    || (fs.existsSync(path.join(__dirname, 'mock-socios.json'))
+      ? fs.readFileSync(path.join(__dirname, 'mock-socios.json'), 'utf8') : '');
+  if (crudo) { try { return JSON.parse(crudo); } catch (e) { console.error('[mock] mock-socios.json no es JSON válido'); } }
+  const { randomInt, randomBytes } = require('crypto');
+  const uid = String(randomInt(100000000, 999999999));
+  const seed = randomBytes(8).toString('hex');
+  console.log(`[mock] sin mock-socios.json: socio de prueba aleatorio uid=${uid} seed=${seed}`);
+  return { prueba: { uid, seed } };
+}
+const SOCIOS = cargarSociosMock();
 
 const PUERTOS = { entrada: 8899, salida: 9999 };
 const clientes = { entrada: new Set(), salida: new Set() };

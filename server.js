@@ -86,9 +86,32 @@ function difundir(clave, valor, cliente) {
 
 /* ---------- Servidor ---------- */
 
+/* Cabeceras de seguridad en TODAS las respuestas. */
+const CABECERAS_SEGURIDAD = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(self), microphone=(), geolocation=()',
+  'Cross-Origin-Opener-Policy': 'same-origin'
+};
+
 const servidor = http.createServer((req, res) => {
+  for (const [k, v] of Object.entries(CABECERAS_SEGURIDAD)) res.setHeader(k, v);
+  try {
+    atender(req, res);
+  } catch (e) {
+    // Nunca dejar caer el proceso por una petición rara
+    console.error('Error atendiendo', req.method, req.url, e.message);
+    if (!res.headersSent) { res.writeHead(500, { 'Content-Type': 'application/json' }); }
+    try { res.end('{"error":"error interno"}'); } catch (e2) { /* ya cerrada */ }
+  }
+});
+
+function atender(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const ruta = decodeURIComponent(url.pathname);
+  let ruta;
+  try { ruta = decodeURIComponent(url.pathname); }
+  catch (e) { res.writeHead(400); res.end('400'); return; }   // p. ej. '/%' (URI malformada)
 
   /* --- API --- */
 
@@ -206,13 +229,8 @@ const servidor = http.createServer((req, res) => {
     return;
   }
 
-  /* Reinicio del modo demo: vacía el estado central */
-  if (ruta === '/api/reiniciar' && req.method === 'POST') {
-    estado = {};
-    persistir();
-    res.writeHead(204); res.end();
-    return;
-  }
+  /* (El antiguo POST /api/reiniciar, que vaciaba TODO el estado sin ninguna
+     autenticación, se ha eliminado: era un agujero de seguridad del prototipo.) */
 
   if (ruta === '/api/eventos' && req.method === 'GET') {
     res.writeHead(200, {
@@ -253,13 +271,14 @@ const servidor = http.createServer((req, res) => {
     return;
   }
 
-  /* --- Estáticos --- */
+  /* --- Estáticos: SOLO por lista blanca ---
+     Antes se servía cualquier fichero del repo (server.js, almacen.js, acceso/,
+     *.md, .git…). Ahora solo lo que la web necesita; el resto → 404. */
 
   let pedida = ruta === '/' ? '/index.html' : ruta;
+  if (!esEstaticoPermitido(pedida)) { res.writeHead(404); res.end('404'); return; }
   const fichero = path.normalize(path.join(RAIZ, pedida));
-  if (!fichero.startsWith(RAIZ) || pedida.startsWith('/data/')) {
-    res.writeHead(403); res.end('403'); return;
-  }
+  if (!fichero.startsWith(RAIZ)) { res.writeHead(404); res.end('404'); return; }
   fs.readFile(fichero, (err, contenido) => {
     if (err) { res.writeHead(404); res.end('404'); return; }
     res.writeHead(200, {
@@ -268,7 +287,25 @@ const servidor = http.createServer((req, res) => {
     });
     res.end(contenido);
   });
-});
+}
+
+// Una promesa rechazada sin capturar no debe tumbar el servidor (Passenger lo
+// reiniciaría y se perderían las conexiones SSE).
+process.on('unhandledRejection', (e) => console.error('Promesa sin capturar:', e && e.message ? e.message : e));
+
+/* Lista blanca de estáticos: páginas, css/, js/ (sin los de prueba/demo), iconos,
+   manifest y service worker. Todo lo demás (código de servidor, acceso/, data/,
+   documentos .md, .git, node_modules…) no se sirve. */
+const PAGINAS = new Set(['/index.html', '/admin.html', '/legal.html', '/accesibilidad.html', '/dossier.html']);
+const RAIZ_OK = new Set(['/manifest.webmanifest', '/sw.js', '/icono.svg', '/icono-180.png']);
+const JS_PROHIBIDOS = new Set(['/js/demo.js', '/js/qr-prueba.js']);
+function esEstaticoPermitido(p) {
+  if (p.includes('..') || p.includes('\0')) return false;
+  if (PAGINAS.has(p) || RAIZ_OK.has(p)) return true;
+  if (p.startsWith('/css/') && p.endsWith('.css')) return true;
+  if (p.startsWith('/js/') && p.endsWith('.js') && !JS_PROHIBIDOS.has(p)) return true;
+  return false;
+}
 
 /* Carga el estado del almacén (MySQL o fichero) y SOLO entonces empieza a
    escuchar, para no atender peticiones con el estado a medio cargar. Si MySQL

@@ -24,14 +24,11 @@ eventos en directo (SSE). Además la web es una **PWA**: desde el móvil puedes
 **Modo simple** — doble clic en `index.html`: funciona igual pero solo en ese
 navegador (localStorage), sin compartir datos.
 
-## Cuentas de demostración
+## Cuentas
 
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Administración | `admin@medinasidonia.es` | `MedinaAdmin2026` |
-| Vecina (abono en vigor) | `carmen@correo.es` | `Vecina2026` |
-| Vecino (abono sin renovación automática) | `paco@correo.es` | `Vecino2026` |
-| Vecina (abono caducado) | `lucia@correo.es` | `Vecina2026` |
+El modo de demostración se ha retirado. Las cuentas reales se crean desde el
+registro de la web (vecinos) y desde el panel (administración). El plan de paso
+a producción segura está en `docs/DISENO-produccion-segura.md`.
 
 ## Qué incluye
 
