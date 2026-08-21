@@ -111,6 +111,9 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   width: min(1120px, 100% - 2.5rem);
   margin-inline: auto;
 }
+/* Panel de administración: ocupa toda la pantalla (solo un margen pequeño a los
+   lados), sin el tope de 1120px de la web pública. */
+.contenedor--ancho { width: calc(100% - 3rem); max-width: none; }
 
 /* El destino del enlace de salto no debe quedar bajo la cabecera sticky */
 #contenido, #contenido-admin { scroll-margin-top: 84px; }
