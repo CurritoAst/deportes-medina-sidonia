@@ -1526,6 +1526,7 @@ main { padding-bottom: 90px; }
 
 .admin-menu {
   display: flex;
+  align-items: center;        /* que el botón activo NO se estire a todo el alto de la fila */
   gap: 6px;
   overflow-x: auto;
   padding: 6px;               /* hueco suficiente para el anillo de foco (3px + offset 2px) */
@@ -1534,6 +1535,7 @@ main { padding-bottom: 90px; }
 @media (min-width: 980px) {
   .admin-menu {
     flex-direction: column;
+    align-items: stretch;     /* en columna sí ocupan todo el ancho, como una lista */
     overflow: visible;
     position: sticky;
     top: 92px;
@@ -1595,12 +1597,11 @@ main { padding-bottom: 90px; }
 .tabla-envoltura { overflow-x: auto; position: relative; }
 .tabla {
   width: 100%;
-  /* separate + border-spacing 0: con 'collapse', el overflow:hidden + border-radius
-     hacían desaparecer el borde exterior (solo quedaban las líneas de fila). */
   border-collapse: separate;
   border-spacing: 0;
   background: var(--blanco);
-  border: 1px solid var(--linea);
+  /* Sin caja: nada de bordes laterales; solo la cabecera y las líneas entre filas. */
+  border: 0;
   border-radius: var(--radio-grande);
   overflow: hidden;
   font-size: .93rem;
