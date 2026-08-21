@@ -256,38 +256,71 @@ const MSDAuth = (function () {
     return e;
   }
 
+  /* ==========================================================================
+     SESIÓN EN SERVIDOR (F2)
+     La cuenta vive en el servidor: cookie HttpOnly + /api/auth/*. Aquí solo se
+     cachea el usuario que el servidor dice que somos (`yo`). El resto de
+     almacenes legados (abonos, accesos, tarifas…) siguen en localStorage hasta
+     que cada pantalla migre (F3–F6). Si el servidor no tiene API de cuentas
+     (abierto con doble clic o sin BD), se cae al modo local antiguo.
+     ========================================================================== */
+
+  const hayApi = typeof MSDApi !== 'undefined' && (location.protocol === 'http:' || location.protocol === 'https:');
+  let yo = null;                 // usuario del servidor (forma de vistaUsuarioPropio)
+  let modoServidor = false;      // true cuando /api/auth responde (hay BD)
+
+  /* Fusiona el usuario del servidor con su ficha legada (abono/carnet) si
+     existe, para que las pantallas de F2 sigan viendo `abono` hasta F3. */
+  function usuarioFusionado(y) {
+    if (!y) return null;
+    const legado = usuarios.find((u) => u.email && y.email && u.email.toLowerCase() === y.email.toLowerCase());
+    return Object.assign({ abono: null, birthdate: '', telefono: '' }, legado || {}, y, { id: y.id, rol: y.rol, nombre: y.nombre, email: y.email });
+  }
+
   function sesionActual() {
+    if (modoServidor) return usuarioFusionado(yo);
+    // modo local (sin API): comportamiento antiguo
     const s = leer(CLAVES.sesion, null);
     if (!s || typeof s.usuarioId !== 'string') return null;
-    const u = buscarPorId(s.usuarioId);
-    return u || null;
+    return buscarPorId(s.usuarioId) || null;
+  }
+
+  /* Pregunta al servidor quién soy (cookie). Devuelve true si hay API. */
+  async function cargarYo() {
+    if (!hayApi) return false;
+    const r = await MSDApi.get('/api/auth/yo');
+    if (r.status === 503 || r.sinRed) return false;       // sin BD / sin red: modo local
+    modoServidor = true;
+    yo = r.ok ? r.datos.usuario : null;
+    return true;
   }
 
   /* ---------- Registro / entrada / salida ---------- */
 
-  async function registrar({ nombre, email, telefono, clave }) {
-    if (buscarPorEmail(email)) {
-      return { error: 'Ya existe una cuenta con ese correo. Prueba a iniciar sesión.' };
+  /* Registro: el servidor envía un correo de verificación. Devuelve
+     { pendienteVerificacion:true } (no inicia sesión) o { error, campo }. */
+  async function registrar({ nombre, email, telefono, clave, birthdate }) {
+    if (modoServidor) {
+      const r = await MSDApi.post('/api/auth/registro', { nombre, email, telefono: telefono || '', clave, birthdate: birthdate || undefined, aceptaNormas: true });
+      if (!r.ok) return { error: r.error, campo: r.campo, codigo: r.codigo };
+      return { pendienteVerificacion: true, email: String(email).trim().toLowerCase() };
     }
+    // modo local antiguo (sin servidor)
+    if (buscarPorEmail(email)) return { error: 'Ya existe una cuenta con ese correo. Prueba a iniciar sesión.' };
     const sal = nuevaSal();
-    const usuario = {
-      id: `u-${Math.random().toString(36).slice(2, 10)}`,
-      nombre: nombre.trim().slice(0, 120),
-      email: email.trim().slice(0, 120),
-      telefono: telefono.trim().slice(0, 20),
-      rol: 'vecino',
-      sal,
-      hash: await hashTexto(sal + clave),
-      creado: Date.now(),
-      abono: null
-    };
-    usuarios.push(usuario);
-    persistirUsuarios();
+    const usuario = { id: `u-${Math.random().toString(36).slice(2, 10)}`, nombre: nombre.trim().slice(0, 120), email: email.trim().slice(0, 120), telefono: (telefono || '').trim().slice(0, 20), rol: 'vecino', sal, hash: await hashTexto(sal + clave), creado: Date.now(), abono: null };
+    usuarios.push(usuario); persistirUsuarios();
     guardar(CLAVES.sesion, { usuarioId: usuario.id, desde: Date.now() });
     return { usuario };
   }
 
   async function entrar(email, clave) {
+    if (modoServidor) {
+      const r = await MSDApi.post('/api/auth/entrar', { email, clave });
+      if (!r.ok) return { error: r.error, codigo: r.codigo, campo: r.codigo === 'CREDENCIALES' ? 'clave' : undefined, hasta: r.datos && r.datos.hasta };
+      yo = r.datos.usuario;
+      return { usuario: usuarioFusionado(yo) };
+    }
     const u = buscarPorEmail(email);
     if (!u) return { error: 'No hay ninguna cuenta con ese correo.', campo: 'email' };
     const hash = await hashTexto(u.sal + clave);
@@ -297,39 +330,50 @@ const MSDAuth = (function () {
   }
 
   function salir() {
+    if (modoServidor) { yo = null; MSDApi.post('/api/auth/salir').catch(() => {}); }
     localStorage.removeItem(CLAVES.sesion);
   }
 
-  /* Solo para el modo demo: cambia de rol sin teclear contraseñas en la sala */
-  function entrarDemo(email) {
-    const u = buscarPorEmail(email);
-    if (!u) return null;
-    guardar(CLAVES.sesion, { usuarioId: u.id, desde: Date.now() });
-    return u;
+  /* Verificación de correo y recuperación (solo servidor). */
+  async function verificarCorreo(token) {
+    const r = await MSDApi.post('/api/auth/verificar', { token });
+    if (!r.ok) return { error: r.error, codigo: r.codigo };
+    yo = r.datos.usuario; modoServidor = true;
+    return { usuario: usuarioFusionado(yo) };
+  }
+  async function reenviarVerificacion(email) { const r = await MSDApi.post('/api/auth/reenviar-verificacion', { email }); return r.ok ? { ok: true } : { error: r.error }; }
+  async function recuperar(email) { const r = await MSDApi.post('/api/auth/recuperar', { email }); return r.ok ? { ok: true } : { error: r.error }; }
+  async function restablecer(token, clave) {
+    const r = await MSDApi.post('/api/auth/restablecer', { token, clave });
+    if (!r.ok) return { error: r.error, codigo: r.codigo, campo: r.campo };
+    yo = r.datos.usuario; modoServidor = true;
+    return { usuario: usuarioFusionado(yo) };
   }
 
-  function actualizarPerfil(usuarioId, cambios) {
+  async function actualizarPerfil(usuarioId, cambios) {
+    if (modoServidor) {
+      const r = await MSDApi.patch('/api/auth/perfil', { nombre: cambios.nombre, telefono: cambios.telefono || '' });
+      if (!r.ok) return { error: r.error, campo: r.campo };
+      yo = r.datos.usuario;
+      return true;
+    }
     const u = buscarPorId(usuarioId);
     if (!u) return false;
-    if (typeof cambios.nombre === 'string' && cambios.nombre.trim().length >= 3) {
-      u.nombre = cambios.nombre.trim().slice(0, 120);
-    }
-    if (typeof cambios.telefono === 'string') {
-      u.telefono = cambios.telefono.trim().slice(0, 20);
-    }
+    if (typeof cambios.nombre === 'string' && cambios.nombre.trim().length >= 3) u.nombre = cambios.nombre.trim().slice(0, 120);
+    if (typeof cambios.telefono === 'string') u.telefono = cambios.telefono.trim().slice(0, 20);
     persistirUsuarios();
     return true;
   }
 
   async function cambiarClave(usuarioId, claveActual, claveNueva) {
+    if (modoServidor) {
+      const r = await MSDApi.post('/api/auth/clave', { actual: claveActual, nueva: claveNueva });
+      return r.ok ? { ok: true } : { error: r.error, campo: r.campo };
+    }
     const u = buscarPorId(usuarioId);
     if (!u) return { error: 'Sesión no válida.' };
-    if (await hashTexto(u.sal + claveActual) !== u.hash) {
-      return { error: 'La contraseña actual no es correcta.' };
-    }
-    u.sal = nuevaSal();
-    u.hash = await hashTexto(u.sal + claveNueva);
-    persistirUsuarios();
+    if (await hashTexto(u.sal + claveActual) !== u.hash) return { error: 'La contraseña actual no es correcta.' };
+    u.sal = nuevaSal(); u.hash = await hashTexto(u.sal + claveNueva); persistirUsuarios();
     return { ok: true };
   }
 
@@ -706,20 +750,28 @@ const MSDAuth = (function () {
     adminCrearUsuario,
     recargar,
     listo: (async () => {
-      // Con servidor: primero se descarga el estado compartido y se recargan
-      // los almacenes; después se siembra (si nadie lo hizo ya) y se automatiza.
+      // 1) Sesión de servidor (F2): ¿quién soy según la cookie?
+      const conApi = await cargarYo().catch(() => false);
+      // 2) Estado legado compartido (abonos, accesos, tarifas…) hasta F3–F6.
       if (typeof MSDSync !== 'undefined') {
         const conServidor = await MSDSync.arrancar();
         if (conServidor) recargar();
       }
-      await sembrar();
-      // Migración de demo: Lucía es monitora (imparte Pilates y GAP)
-      const lucia = buscarPorEmail('lucia@correo.es');
-      if (lucia && lucia.rol === 'vecino') { lucia.rol = 'monitor'; persistirUsuarios(); }
+      // 3) Solo en modo LOCAL (sin API de cuentas) se siembra la demo antigua.
+      if (!conApi) {
+        await sembrar();
+        const lucia = buscarPorEmail('lucia@correo.es');
+        if (lucia && lucia.rol === 'vecino') { lucia.rol = 'monitor'; persistirUsuarios(); }
+      }
       migrarCarnets(); // rellena UID/semilla en abonos anteriores al torno real
       aplicarTarifas();
       ejecutarAutomatizaciones();
     })(),
+    get modoServidor() { return modoServidor; },
+    verificarCorreo,
+    reenviarVerificacion,
+    recuperar,
+    restablecer,
     usuarios: () => usuarios.slice(),
     accesos: () => accesos.slice(),
     automatizaciones: () => automatizaciones.slice(),
@@ -730,7 +782,6 @@ const MSDAuth = (function () {
     sesionActual,
     registrar,
     entrar,
-    entrarDemo,
     salir,
     actualizarPerfil,
     cambiarClave,

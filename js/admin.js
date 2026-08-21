@@ -1477,9 +1477,9 @@
     if (!email || !clave) return;
     const res = await MSDAuth.entrar(email, clave);
     if (res.error) {
-      const campo = res.campo === 'email' ? 'admin-email' : 'admin-clave';
-      errorEn(campo, res.error);
-      $(`#${campo}`).focus();
+      // Mensaje único para no delatar si el correo existe
+      errorEn('admin-clave', res.error);
+      $('#admin-clave').focus();
       return;
     }
     if (res.usuario.rol !== 'admin') {

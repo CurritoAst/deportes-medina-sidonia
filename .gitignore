@@ -3,6 +3,8 @@ node_modules/
 
 # Estado en tiempo de ejecución: lo crea el servidor y lo resiembra el navegador
 data/estado.json
+# Correos volcados en modo desarrollo (sin SMTP)
+data/correos-salientes.log
 
 # Caché local y cola de accesos del servicio (estado en tiempo de ejecución)
 acceso/cache-socios.json

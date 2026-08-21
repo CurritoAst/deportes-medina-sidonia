@@ -18,6 +18,22 @@ const path = require('path');
 const { crearAlmacen, crearAlmacenFichero } = require('./almacen');
 const bd = require('./lib/bd');
 const { migrar } = require('./migrar');
+const { crearRouter } = require('./lib/http');
+const sesion = require('./lib/sesion');
+const tornoAuth = require('./lib/torno-auth');
+const limite = require('./lib/limite');
+const correo = require('./lib/correo');
+const authRutas = require('./lib/auth-rutas');
+
+/* ---------- API nueva (F2+): router con sesión en servidor ----------
+   Convive con las rutas legadas de abajo hasta que cada pantalla migre. Solo se
+   monta si hay BD (sin BD, en desarrollo local, la API nueva responde 503). */
+const router = crearRouter({
+  urlPublica: process.env.MSD_URL_PUBLICA || '',
+  autenticarSesion: (req, res) => (bd.configurada() ? sesion.autenticar(req, res) : Promise.resolve(null)),
+  autenticarTorno: (req) => Promise.resolve(tornoAuth.autenticar(req))
+});
+authRutas.montar(router);
 
 /* En local usa 8137; en un host (Render, Railway, Fly…) se toma el puerto que
    inyecta la plataforma por la variable PORT. */
@@ -101,8 +117,28 @@ const CABECERAS_SEGURIDAD = {
 
 const servidor = http.createServer((req, res) => {
   for (const [k, v] of Object.entries(CABECERAS_SEGURIDAD)) res.setHeader(k, v);
+  if (sesion.esHttps(req)) res.setHeader('Strict-Transport-Security', 'max-age=15552000');
+  let ruta;
+  try { ruta = decodeURIComponent(new URL(req.url, `http://${req.headers.host || 'localhost'}`).pathname); }
+  catch (e) { res.writeHead(400); res.end('400'); return; }   // p. ej. '/%' (URI malformada)
+
+  // 1) API nueva (router con sesión en servidor). Si la ruta es suya, la atiende
+  //    él (incluidos 401/403/404 de /api/auth/*). Si no, sigue el flujo legado.
+  if (ruta.startsWith('/api/auth/') || ruta.startsWith('/api/torno/') || ruta.startsWith('/api/mi/') || ruta.startsWith('/api/admin/') || ruta.startsWith('/api/monitor/')) {
+    if (!bd.configurada()) { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end('{"error":"La API de cuentas necesita base de datos (variables MSD_DB_*)."}'); return; }
+    const ip = limite.ipCliente(req);
+    if (!limite.comprobar('apiIp', ip).permitido) { res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '30' }); res.end('{"error":"Demasiadas peticiones","codigo":"LIMITE"}'); return; }
+    router.despachar(req, res, ruta, { ip }).then((atendida) => {
+      if (!atendida && !res.headersSent) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end('{"error":"no existe"}'); }
+    }).catch((e) => {
+      console.error('Error en router', req.method, ruta, e && e.message);
+      if (!res.headersSent) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end('{"error":"Error interno"}'); }
+    });
+    return;
+  }
+
   try {
-    atender(req, res);
+    atender(req, res, ruta);
   } catch (e) {
     // Nunca dejar caer el proceso por una petición rara
     console.error('Error atendiendo', req.method, req.url, e.message);
@@ -111,13 +147,10 @@ const servidor = http.createServer((req, res) => {
   }
 });
 
-function atender(req, res) {
+function atender(req, res, ruta) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  let ruta;
-  try { ruta = decodeURIComponent(url.pathname); }
-  catch (e) { res.writeHead(400); res.end('400'); return; }   // p. ej. '/%' (URI malformada)
 
-  /* --- API --- */
+  /* --- API legada (clave-valor) — se irá vaciando en F2..F6 --- */
 
   if (ruta === '/api/estado' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -331,6 +364,15 @@ async function arrancar() {
     } catch (e) {
       esquemaError = e.message;
       console.error('[BD] Error aplicando migraciones:', e.message);
+    }
+    // Primer admin por variables de entorno (solo si no hay ninguno) y bucle de
+    // correos pendientes + purga de sesiones caducadas cada hora.
+    if (!esquemaError && esquemaVersion >= 1) {
+      try { await authRutas.bootstrapAdmin((m) => console.log(m)); } catch (e) { console.error('[bootstrap]', e.message); }
+      correo.arrancarBucle();
+      setInterval(() => sesion.purgar().catch(() => {}), 3600e3).unref();
+      if (!process.env.MSD_URL_PUBLICA) console.warn('[config] Falta MSD_URL_PUBLICA: los enlaces de los correos saldrán con http://localhost:8137.');
+      if (correo.modoDev()) console.warn('[correo] Sin MSD_SMTP_HOST: los correos NO se envían, se vuelcan a consola y a correos-salientes.log.');
     }
   }
   // 2) Estado legado (clave-valor) — sigue siendo la fuente de la web hasta que

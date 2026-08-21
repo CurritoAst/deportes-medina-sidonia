@@ -422,7 +422,54 @@
             <p class="campo__error" id="error-entrar-clave" role="alert" hidden></p>
           </div>
           <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Entrar</button>
+          <p class="paso__ayuda" style="margin-top:.75rem"><a href="#/recuperar" id="enlace-recuperar">He olvidado mi contraseña</a></p>
+          <p class="campo__error" id="aviso-no-verificado" role="alert" hidden>
+            Todavía no has confirmado tu correo. <button class="boton--texto" type="button" id="boton-reenviar-verificacion">Reenviar el correo de confirmación</button>
+          </p>
         </form>
+
+        <!-- Revisa tu correo (tras registrarte) -->
+        <div class="formulario acceso__panel" id="panel-revisa-correo" hidden>
+          <h2 class="etiqueta-grupo">Revisa tu correo</h2>
+          <p>Te hemos enviado un enlace a <strong id="revisa-correo-email"></strong> para confirmar tu cuenta. Ábrelo para activarla (caduca en 24 horas). Mira también la carpeta de spam.</p>
+          <p class="paso__ayuda">¿No llega? <button class="boton--texto" type="button" id="boton-reenviar-registro">Reenviar el correo</button></p>
+        </div>
+
+        <!-- Recuperar contraseña -->
+        <form class="formulario acceso__panel" id="panel-recuperar" novalidate hidden>
+          <h2 class="etiqueta-grupo">Recuperar contraseña</h2>
+          <p class="paso__ayuda">Escribe tu correo y te enviaremos un enlace para elegir una contraseña nueva.</p>
+          <div class="campo">
+            <label for="recuperar-email">Correo electrónico <span class="req" aria-hidden="true">*</span></label>
+            <input id="recuperar-email" name="email" type="email" autocomplete="email" required aria-describedby="error-recuperar-email">
+            <p class="campo__error" id="error-recuperar-email" role="alert" hidden></p>
+          </div>
+          <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Enviarme el enlace</button>
+          <p class="paso__ayuda" style="margin-top:.75rem"><a href="#/acceso">Volver a iniciar sesión</a></p>
+        </form>
+
+        <!-- Restablecer contraseña (desde el enlace del correo) -->
+        <form class="formulario acceso__panel" id="panel-restablecer" novalidate hidden>
+          <h2 class="etiqueta-grupo">Elige una contraseña nueva</h2>
+          <div class="campo">
+            <label for="restablecer-clave">Nueva contraseña <span class="req" aria-hidden="true">*</span></label>
+            <div class="campo-clave">
+              <input id="restablecer-clave" name="clave" type="password" autocomplete="new-password" required minlength="10" aria-describedby="ayuda-restablecer-clave error-restablecer-clave">
+              <button class="ver-clave" type="button" data-ver-clave="restablecer-clave" aria-pressed="false">Ver</button>
+            </div>
+            <p class="campo__ayuda" id="ayuda-restablecer-clave">Mínimo 10 caracteres. Mejor una frase que recuerdes.</p>
+            <p class="campo__error" id="error-restablecer-clave" role="alert" hidden></p>
+          </div>
+          <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Guardar y entrar</button>
+        </form>
+
+        <!-- Verificando el correo (desde el enlace) -->
+        <div class="formulario acceso__panel" id="panel-verificar" hidden>
+          <h2 class="etiqueta-grupo">Confirmar tu correo</h2>
+          <p id="verificar-texto">Pulsa el botón para activar tu cuenta.</p>
+          <button class="boton boton--primario boton--grande" type="button" id="boton-verificar">Confirmar mi correo</button>
+          <p class="campo__error" id="error-verificar" role="alert" hidden></p>
+        </div>
 
         <!-- Crear cuenta -->
         <form class="formulario acceso__panel" id="panel-registro" role="tabpanel" aria-labelledby="pestana-registro" novalidate hidden>
@@ -444,12 +491,13 @@
           <div class="campo">
             <label for="registro-clave">Contraseña <span class="req" aria-hidden="true">*</span></label>
             <div class="campo-clave">
-              <input id="registro-clave" name="clave" type="password" autocomplete="new-password" required minlength="8" aria-describedby="ayuda-registro-clave error-registro-clave">
+              <input id="registro-clave" name="clave" type="password" autocomplete="new-password" required minlength="10" aria-describedby="ayuda-registro-clave error-registro-clave">
               <button class="ver-clave" type="button" data-ver-clave="registro-clave" aria-pressed="false">Ver</button>
             </div>
-            <p class="campo__ayuda" id="ayuda-registro-clave">Mínimo 8 caracteres.</p>
+            <p class="campo__ayuda" id="ayuda-registro-clave">Mínimo 10 caracteres. Mejor una frase que recuerdes.</p>
             <p class="campo__error" id="error-registro-clave" role="alert" hidden></p>
           </div>
+          <p class="paso__ayuda">Al crear la cuenta aceptas las <a href="legal.html" target="_blank" rel="noopener">normas de uso y la política de privacidad</a>. Te enviaremos un correo para confirmarla.</p>
           <button class="boton boton--primario boton--grande formulario__enviar" type="submit">Crear cuenta</button>
         </form>
       </div>
@@ -518,8 +566,8 @@
             </div>
             <div class="campo">
               <label for="clave-nueva">Nueva contraseña</label>
-              <input id="clave-nueva" name="nueva" type="password" autocomplete="new-password" required minlength="8" aria-describedby="ayuda-clave-nueva error-clave-nueva">
-              <p class="campo__ayuda" id="ayuda-clave-nueva">Mínimo 8 caracteres.</p>
+              <input id="clave-nueva" name="nueva" type="password" autocomplete="new-password" required minlength="10" aria-describedby="ayuda-clave-nueva error-clave-nueva">
+              <p class="campo__ayuda" id="ayuda-clave-nueva">Mínimo 10 caracteres. Mejor una frase que recuerdes.</p>
               <p class="campo__error" id="error-clave-nueva" role="alert" hidden></p>
             </div>
             <button class="boton boton--secundario" type="submit">Actualizar contraseña</button>
@@ -593,6 +641,7 @@
 <script src="js/data.js"></script>
 <script src="js/qr.js"></script>
 <script src="js/token.js"></script>
+<script src="js/api.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/gimnasio.js"></script>

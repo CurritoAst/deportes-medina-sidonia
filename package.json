@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/token.test.js test/fechas.test.js test/validar.test.js test/migrar.test.js",
+    "test": "node --test test/token.test.js test/fechas.test.js test/validar.test.js test/migrar.test.js test/clave.test.js test/limite.test.js test/http.test.js test/sesion-cookies.test.js test/correo.test.js test/torno-auth.test.js",
+    "test:bd": "node --test test/auth-e2e.test.js",
     "migrar": "node migrar.js",
     "acceso": "node acceso/acceso.js",
     "lector-mock": "node acceso/lector-mock.js"

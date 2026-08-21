@@ -1063,25 +1063,50 @@
       location.hash = (u && u.rol === 'monitor') ? '#/monitor' : '#/perfil';
     };
 
+    /* Muestra uno de los paneles auxiliares del acceso (o ninguno → pestañas). */
+    const PANELES_AUX = ['#panel-revisa-correo', '#panel-recuperar', '#panel-restablecer', '#panel-verificar'];
+    const mostrarAuxiliar = (sel) => {
+      const hayAux = !!sel;
+      $('.acceso__pestanas').hidden = hayAux;
+      panelEntrar.hidden = hayAux || pestanaRegistro.getAttribute('aria-selected') === 'true';
+      panelRegistro.hidden = hayAux || pestanaRegistro.getAttribute('aria-selected') !== 'true';
+      PANELES_AUX.forEach((p) => { const el = $(p); if (el) el.hidden = (p !== sel); });
+    };
+    conectarAcceso.mostrarAuxiliar = mostrarAuxiliar;
+    conectarAcceso.activarPestana = activarPestana;
+
+    let emailPendiente = '';
+
     panelEntrar.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const email = $('#entrar-email').value.trim();
       const clave = $('#entrar-clave').value;
+      $('#aviso-no-verificado').hidden = true;
       errorEn('entrar-email', email ? '' : 'Escribe tu correo.');
       errorEn('entrar-clave', clave ? '' : 'Escribe tu contraseña.');
       if (!email || !clave) {
         $(!email ? '#entrar-email' : '#entrar-clave').focus();
         return;
       }
+      const boton = panelEntrar.querySelector('[type="submit"]');
+      boton.disabled = true;
       const res = await MSDAuth.entrar(email, clave);
+      boton.disabled = false;
       if (res.error) {
-        // El error se asocia al campo que lo causa (correo inexistente vs contraseña)
-        const campo = res.campo === 'email' ? 'entrar-email' : 'entrar-clave';
-        errorEn(campo, res.error);
-        $(`#${campo}`).focus();
+        if (res.codigo === 'EMAIL_NO_VERIFICADO') { emailPendiente = email; $('#aviso-no-verificado').hidden = false; return; }
+        // Mensaje único (no delatar si existe el correo); el foco va a la contraseña
+        errorEn('entrar-clave', res.error);
+        $('#entrar-clave').focus();
         return;
       }
       trasAcceso(res.usuario.nombre);
+    });
+
+    $('#boton-reenviar-verificacion').addEventListener('click', async () => {
+      const email = emailPendiente || $('#entrar-email').value.trim();
+      if (!email) return;
+      const r = await MSDAuth.reenviarVerificacion(email);
+      avisar(r.error || 'Te hemos reenviado el correo de confirmación.');
     });
 
     panelRegistro.addEventListener('submit', async (ev) => {
@@ -1093,15 +1118,67 @@
       errorEn('registro-nombre', nombre.length >= 3 ? '' : 'Escribe tu nombre y apellidos.');
       errorEn('registro-email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? '' : 'Revisa el correo: debe tener el formato nombre@dominio.es.');
       errorEn('registro-telefono', /^(\+34)?[679]\d{8}$/.test(telefono.replace(/[\s.-]/g, '')) ? '' : 'Escribe un móvil válido de 9 cifras.');
-      errorEn('registro-clave', clave.length >= 8 ? '' : 'La contraseña debe tener al menos 8 caracteres.');
+      errorEn('registro-clave', clave.length >= 10 ? '' : 'La contraseña debe tener al menos 10 caracteres.');
       if ($$('#panel-registro [aria-invalid="true"]').length) {
         $$('#panel-registro [aria-invalid="true"]')[0].focus();
         return;
       }
+      const boton = panelRegistro.querySelector('[type="submit"]');
+      boton.disabled = true;
       const res = await MSDAuth.registrar({ nombre, email, telefono, clave });
-      if (res.error) { errorEn('registro-email', res.error); return; }
+      boton.disabled = false;
+      if (res.error) {
+        const campo = res.campo === 'clave' ? 'registro-clave' : res.campo === 'telefono' ? 'registro-telefono' : res.campo === 'nombre' ? 'registro-nombre' : 'registro-email';
+        errorEn(campo, res.error); $(`#${campo}`).focus(); return;
+      }
       panelRegistro.reset();
-      trasAcceso(res.usuario.nombre);
+      if (res.pendienteVerificacion) {
+        // Servidor: hay que confirmar el correo antes de entrar
+        emailPendiente = res.email;
+        $('#revisa-correo-email').textContent = res.email;
+        mostrarAuxiliar('#panel-revisa-correo');
+        return;
+      }
+      trasAcceso(res.usuario.nombre);   // modo local antiguo
+    });
+
+    $('#boton-reenviar-registro').addEventListener('click', async () => {
+      if (!emailPendiente) return;
+      const r = await MSDAuth.reenviarVerificacion(emailPendiente);
+      avisar(r.error || 'Correo reenviado. Mira también la carpeta de spam.');
+    });
+
+    $('#panel-recuperar').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const email = $('#recuperar-email').value.trim();
+      errorEn('recuperar-email', /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? '' : 'Revisa el correo.');
+      if ($('#recuperar-email').getAttribute('aria-invalid')) return;
+      const r = await MSDAuth.recuperar(email);
+      if (r.error) { errorEn('recuperar-email', r.error); return; }
+      avisar('Si ese correo tiene cuenta, te llegará un enlace en un momento.');
+      $('#recuperar-email').value = '';
+      location.hash = '#/acceso';
+    });
+
+    let tokenRestablecer = '';
+    conectarAcceso.prepararRestablecer = (token) => { tokenRestablecer = token; $('#restablecer-clave').value = ''; mostrarAuxiliar('#panel-restablecer'); };
+    $('#panel-restablecer').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const clave = $('#restablecer-clave').value;
+      errorEn('restablecer-clave', clave.length >= 10 ? '' : 'Mínimo 10 caracteres.');
+      if ($('#restablecer-clave').getAttribute('aria-invalid')) return;
+      const r = await MSDAuth.restablecer(tokenRestablecer, clave);
+      if (r.error) { errorEn('restablecer-clave', r.error); return; }
+      $('#restablecer-clave').value = '';
+      trasAcceso(r.usuario.nombre);
+    });
+
+    let tokenVerificar = '';
+    conectarAcceso.prepararVerificar = (token) => { tokenVerificar = token; $('#error-verificar').hidden = true; mostrarAuxiliar('#panel-verificar'); };
+    $('#boton-verificar').addEventListener('click', async () => {
+      const r = await MSDAuth.verificarCorreo(tokenVerificar);
+      if (r.error) { $('#error-verificar').textContent = r.error; $('#error-verificar').hidden = false; return; }
+      trasAcceso(r.usuario.nombre);
     });
   }
 
@@ -1342,10 +1419,12 @@
       errorEn('perfil-telefono', telefono === '' || /^(\+34)?[679]\d{8}$/.test(telefono.replace(/[\s.-]/g, '')) ? '' : 'Escribe un móvil válido de 9 cifras.');
       const invalidoPerfil = $('#form-perfil [aria-invalid="true"]');
       if (invalidoPerfil) { invalidoPerfil.focus(); return; }
-      MSDAuth.actualizarPerfil(u.id, { nombre, telefono });
-      pintarSesion();
-      pintarPerfil();
-      avisar('Datos guardados.');
+      Promise.resolve(MSDAuth.actualizarPerfil(u.id, { nombre, telefono })).then((r) => {
+        if (r && r.error) { errorEn(r.campo === 'telefono' ? 'perfil-telefono' : 'perfil-nombre', r.error); return; }
+        pintarSesion();
+        pintarPerfil();
+        avisar('Datos guardados.');
+      });
     });
 
     $('#form-clave').addEventListener('submit', async (ev) => {
@@ -1355,7 +1434,7 @@
       const actual = $('#clave-actual').value;
       const nueva = $('#clave-nueva').value;
       errorEn('clave-actual', actual ? '' : 'Escribe tu contraseña actual.');
-      errorEn('clave-nueva', nueva.length >= 8 ? '' : 'La nueva contraseña debe tener al menos 8 caracteres.');
+      errorEn('clave-nueva', nueva.length >= 10 ? '' : 'La nueva contraseña debe tener al menos 10 caracteres.');
       const invalidoClave = $('#form-clave [aria-invalid="true"]');
       if (invalidoClave) { invalidoClave.focus(); return; }
       const res = await MSDAuth.cambiarClave(u.id, actual, nueva);
@@ -1836,7 +1915,8 @@
     const hash = location.hash.replace(/^#/, '') || '/';
     if (!hash.startsWith('/')) return; // ancla normal (p. ej. #contenido), no es ruta
 
-    const partes = hash.split('/').filter(Boolean); // p. ej. ['reservar','horario']
+    // La parte de consulta (#/verificar?token=…) no forma parte del camino
+    const partes = hash.split('?')[0].split('/').filter(Boolean); // p. ej. ['reservar','horario']
 
     // Si se navega a cualquier vista que no sea el acceso, el destino pendiente caduca
     // (los guards de más abajo lo fijan después de esta línea cuando toca)
@@ -1897,9 +1977,27 @@
         // Sin destino pendiente, el texto de motivo vuelve al genérico
         if (!destinoTrasAcceso) {
           $('#acceso-motivo').textContent =
-            'Con tu cuenta puedes ver la disponibilidad de las pistas, reservar e inscribirte en clases.';
+            'Con tu cuenta puedes ver la disponibilidad de las pistas y reservar.';
         }
         mostrarVista('acceso');
+        conectarAcceso.mostrarAuxiliar(null);
+        break;
+      }
+      // Enlaces del correo y recuperación (el token viaja en el fragmento, nunca en query)
+      case 'recuperar': {
+        if (sesion()) { location.replace('#/perfil'); return; }
+        mostrarVista('acceso');
+        conectarAcceso.mostrarAuxiliar('#panel-recuperar');
+        break;
+      }
+      case 'restablecer':
+      case 'verificar': {
+        const q = new URLSearchParams((hash.split('?')[1] || ''));
+        const token = q.get('token') || '';
+        mostrarVista('acceso');
+        if (!token) { location.replace('#/acceso'); return; }
+        if (partes[0] === 'verificar') conectarAcceso.prepararVerificar(token);
+        else conectarAcceso.prepararRestablecer(token);
         break;
       }
       case 'perfil':
