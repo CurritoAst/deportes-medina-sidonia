@@ -210,6 +210,13 @@
       navPerfil.href = '#/acceso';
       navPerfil.querySelector('span').textContent = 'Acceder';
     }
+    // Botón secundario del hero: "Iniciar sesión" si no hay sesión; si la hay, su área.
+    const heroAcc = $('#hero-acceso');
+    const heroAccT = $('#hero-acceso-texto');
+    if (heroAcc && heroAccT) {
+      heroAcc.href = u ? '#/perfil' : '#/acceso';
+      heroAccT.textContent = u ? 'Mi área' : 'Iniciar sesión';
+    }
     aplicarRol();
     pintarCampana();
   }

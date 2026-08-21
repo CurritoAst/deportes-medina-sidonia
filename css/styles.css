@@ -1526,7 +1526,7 @@ main { padding-bottom: 90px; }
 
 .admin-menu {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   padding: 6px;               /* hueco suficiente para el anillo de foco (3px + offset 2px) */
   margin: 0 -6px 22px;
@@ -1543,12 +1543,14 @@ main { padding-bottom: 90px; }
 .admin-menu button {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 46px;
-  padding: 10px 16px;
-  border-radius: 12px;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 13px;
+  border-radius: 10px;
   border: 1.5px solid transparent;
   background: transparent;
+  font-size: .9rem;
+  white-space: nowrap;
   font-weight: 600;
   font-size: .95rem;
   color: var(--tinta-suave);
