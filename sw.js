@@ -6,7 +6,7 @@
 
 'use strict';
 
-const CACHE = 'msd-v5';
+const CACHE = 'msd-v6';
 const NUCLEO = [
   './',
   'index.html',

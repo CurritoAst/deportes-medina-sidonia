@@ -72,6 +72,9 @@
   <symbol id="i-euro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="M18 6.5A7.5 7.5 0 1 0 18 17.5"/><path d="M4 10.5h9M4 13.5h9"/>
   </symbol>
+  <symbol id="i-buscar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/>
+  </symbol>
 </svg>
 
 <a class="salto" href="#contenido-admin">Saltar al contenido principal</a>
@@ -87,6 +90,14 @@
         <small>Panel de administración</small>
       </span>
     </a>
+    <!-- Buscador global: nombre, correo o la pulsera leída con el lector USB (F2 le da el foco) -->
+    <form class="cabecera__buscar" id="form-buscar-global" role="search" hidden>
+      <label class="visualmente-oculto" for="buscar-global">Buscar socio por nombre, correo o pulsera</label>
+      <svg class="cabecera__buscar-icono" width="18" height="18" aria-hidden="true"><use href="#i-buscar"/></svg>
+      <input id="buscar-global" type="search" placeholder="Socio o pulsera… (F2)" autocomplete="off" spellcheck="false" enterkeyhint="search">
+    </form>
+    <span class="cabecera__estado" id="chip-torno" hidden><span class="insignia insignia--neutra" id="chip-torno-insignia">Torno</span><span id="chip-torno-texto">—</span></span>
+    <span class="chip-usuario chip-usuario--sesion" id="admin-hola" hidden></span>
     <a class="chip-usuario" href="index.html">
       <svg width="18" height="18" aria-hidden="true"><use href="#i-arco"/></svg>
       <span>Web de reservas</span>
@@ -123,34 +134,69 @@
 
   <!-- Aplicación -->
   <section id="admin-app" aria-labelledby="titulo-admin" hidden>
-    <h1 id="titulo-admin" class="titulo-vista">Gestión del complejo deportivo</h1>
-    <p class="paso__ayuda" id="admin-hola"></p>
+    <h1 id="titulo-admin" class="titulo-vista titulo-vista--panel">Gestión del complejo deportivo</h1>
 
     <div class="admin-cuerpo">
+      <!-- Menú agrupado por frecuencia de uso: lo de mostrador arriba, lo del técnico aparte.
+           Los data-seccion son los mismos de siempre (js/admin.js los usa). -->
       <nav class="admin-menu" aria-label="Secciones del panel" id="admin-menu">
-        <button type="button" data-seccion="panel" aria-current="true"><svg width="19" height="19" aria-hidden="true"><use href="#i-panel"/></svg> Panel</button>
-        <button type="button" data-seccion="reservas"><svg width="19" height="19" aria-hidden="true"><use href="#i-calendario"/></svg> Reservas</button>
-        <button type="button" data-seccion="clases"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Clases y colas</button>
-        <button type="button" data-seccion="abonados"><svg width="19" height="19" aria-hidden="true"><use href="#i-usuario"/></svg> Abonados</button>
-        <button type="button" data-seccion="gimnasio"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Gimnasio por horas</button>
-        <button type="button" data-seccion="tarifas"><svg width="19" height="19" aria-hidden="true"><use href="#i-euro"/></svg> Tarifas y finanzas</button>
-        <button type="button" data-seccion="instalaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-valla"/></svg> Bloqueos de pista</button>
-        <button type="button" data-seccion="plid"><svg width="19" height="19" aria-hidden="true"><use href="#i-grafica"/></svg> Ocupación · PLID</button>
-        <button type="button" data-seccion="torno"><svg width="19" height="19" aria-hidden="true"><use href="#i-torno"/></svg> Torno de acceso</button>
-        <button type="button" data-seccion="automatizaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-flash"/></svg> Automatización</button>
+        <div class="admin-menu__bloque" role="group" aria-labelledby="mg-rec">
+          <span class="admin-menu__grupo" id="mg-rec">Recepción</span>
+          <button type="button" data-seccion="panel" aria-current="true" aria-controls="seccion-panel"><svg width="19" height="19" aria-hidden="true"><use href="#i-panel"/></svg> Inicio</button>
+          <button type="button" data-seccion="abonados" aria-controls="seccion-abonados"><svg width="19" height="19" aria-hidden="true"><use href="#i-usuario"/></svg> Socios y abonos</button>
+          <button type="button" data-seccion="torno" aria-controls="seccion-torno"><svg width="19" height="19" aria-hidden="true"><use href="#i-torno"/></svg> Torno y pulseras</button>
+          <button type="button" data-seccion="gimnasio" aria-controls="seccion-gimnasio"><svg width="19" height="19" aria-hidden="true"><use href="#i-personas"/></svg> Gimnasio por horas</button>
+          <button type="button" data-seccion="reservas" aria-controls="seccion-reservas"><svg width="19" height="19" aria-hidden="true"><use href="#i-calendario"/></svg> Reservas</button>
+          <button type="button" data-seccion="clases" aria-controls="seccion-clases"><svg width="19" height="19" aria-hidden="true"><use href="#i-cola"/></svg> Clases y colas</button>
+        </div>
+        <div class="admin-menu__bloque" role="group" aria-labelledby="mg-ges">
+          <span class="admin-menu__grupo" id="mg-ges">Gestión</span>
+          <button type="button" data-seccion="tarifas" aria-controls="seccion-tarifas"><svg width="19" height="19" aria-hidden="true"><use href="#i-euro"/></svg> Tarifas y finanzas</button>
+          <button type="button" data-seccion="instalaciones" aria-controls="seccion-instalaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-valla"/></svg> Pistas: bloqueos y ventana</button>
+          <button type="button" data-seccion="plid" aria-controls="seccion-plid"><svg width="19" height="19" aria-hidden="true"><use href="#i-grafica"/></svg> Ocupación (informe PLID)</button>
+          <button type="button" data-seccion="automatizaciones" aria-controls="seccion-automatizaciones"><svg width="19" height="19" aria-hidden="true"><use href="#i-flash"/></svg> Registro automático</button>
+        </div>
       </nav>
 
       <div>
-        <section class="admin-seccion" id="seccion-panel" aria-label="Resumen general">
+        <section class="admin-seccion" id="seccion-panel" aria-label="Inicio">
+          <!-- Ahora mismo: torno, aforo, franja de gimnasio y último acceso (lo rellena el JS) -->
+          <div class="ahora" id="admin-ahora" aria-label="Ahora mismo"><!-- JS --></div>
+
+          <h2 class="admin-seccion__titulo">¿Qué necesitas hacer?</h2>
+          <!-- Atajos a las 4 tareas de mostrador. data-ir = sección, data-abrir = <details> a desplegar, data-foco = campo que recibe el foco -->
+          <div class="atajos" id="admin-atajos">
+            <button type="button" class="atajo atajo--primario" data-ir="abonados" data-abrir="abonados-crear" data-foco="nuevo-nombre">
+              <svg width="24" height="24" aria-hidden="true"><use href="#i-usuario"/></svg>
+              <strong>Dar de alta a un vecino</strong><span>Cuenta, abono, pulsera y hora de gimnasio, todo seguido</span>
+            </button>
+            <button type="button" class="atajo" data-foco="buscar-global">
+              <svg width="24" height="24" aria-hidden="true"><use href="#i-buscar"/></svg>
+              <strong>Buscar socio o leer pulsera</strong><span>Nombre, correo o la pulsera en el lector USB</span>
+            </button>
+            <button type="button" class="atajo" data-ir="torno" data-foco="torno-manual">
+              <svg width="24" height="24" aria-hidden="true"><use href="#i-torno"/></svg>
+              <strong>Validar en el torno</strong><span>Comprobar una pulsera o dar de alta una nueva</span>
+            </button>
+            <button type="button" class="atajo" data-ir="gimnasio" data-foco="gim-socio">
+              <svg width="24" height="24" aria-hidden="true"><use href="#i-personas"/></svg>
+              <strong>Apuntar al gimnasio</strong><span>Franjas por hora y lista de espera</span>
+            </button>
+          </div>
+
+          <h2 class="admin-seccion__titulo">Cifras de hoy y del mes</h2>
           <div class="kpis" id="admin-kpis"><!-- JS --></div>
-          <h2 class="etiqueta-grupo">Últimas automatizaciones</h2>
-          <ul class="lista-auto" id="admin-auto-resumen"><!-- JS --></ul>
+
+          <details class="admin-plegable">
+            <summary>Últimas automatizaciones</summary>
+            <ul class="lista-auto" id="admin-auto-resumen"><!-- JS --></ul>
+          </details>
         </section>
 
         <section class="admin-seccion" id="seccion-gimnasio" aria-label="Gimnasio por horas" hidden>
           <div class="admin-seccion__cabecera">
-            <h2 class="etiqueta-grupo">Gimnasio por horas</h2>
-            <span class="paso__ayuda" id="gimnasio-resumen" style="margin:0"></span>
+            <h2 class="admin-seccion__titulo">Gimnasio por horas</h2>
+            <span class="paso__ayuda" id="gimnasio-resumen"></span>
           </div>
 
           <div class="gim-alta">
@@ -167,7 +213,7 @@
               <label class="gim-form__ancho">Nota / estado físico (opcional)
                 <input id="gim-nota" maxlength="200" placeholder="Observaciones del reconocimiento…">
               </label>
-              <button class="boton" type="submit">Apuntar</button>
+              <button class="boton boton--primario" type="submit">Apuntar</button>
             </form>
             <p class="campo__error" id="gim-error" role="alert" hidden></p>
           </div>
@@ -177,7 +223,7 @@
 
         <section class="admin-seccion" id="seccion-reservas" aria-label="Reservas de pistas" hidden>
           <div class="admin-seccion__cabecera">
-            <h2 class="etiqueta-grupo">Reservas de vecinos</h2>
+            <h2 class="admin-seccion__titulo">Reservas de vecinos</h2>
             <button class="boton boton--secundario" type="button" id="csv-reservas">Exportar CSV</button>
           </div>
 
@@ -210,7 +256,7 @@
         </section>
 
         <section class="admin-seccion" id="seccion-tarifas" aria-label="Tarifas y finanzas" hidden>
-          <h2 class="etiqueta-grupo">Tarifas y finanzas</h2>
+          <h2 class="admin-seccion__titulo">Tarifas y finanzas</h2>
           <p class="paso__ayuda">Cambia un precio y toda la web lo aplica al momento, también en los demás dispositivos. En producción, estas tarifas se cargarían desde la ordenanza fiscal versionada.</p>
           <form id="form-tarifas" novalidate>
             <div id="admin-tarifas"><!-- JS --></div>
@@ -219,39 +265,58 @@
         </section>
 
         <section class="admin-seccion" id="seccion-clases" aria-label="Clases y listas de espera" hidden>
-          <h2 class="etiqueta-grupo">Clases dirigidas y listas de espera</h2>
+          <h2 class="admin-seccion__titulo">Clases dirigidas y listas de espera</h2>
           <p class="paso__ayuda">Cuando se libera una plaza, la primera persona de la cola entra y recibe el aviso automáticamente.</p>
           <div id="admin-clases"><!-- JS --></div>
         </section>
 
-        <section class="admin-seccion" id="seccion-abonados" aria-label="Abonados del gimnasio" hidden>
+        <section class="admin-seccion" id="seccion-abonados" aria-label="Socios y abonos" hidden>
           <div class="admin-seccion__cabecera">
-            <h2 class="etiqueta-grupo">Vecinos y abonos</h2>
-            <button class="boton boton--secundario" type="button" id="csv-abonados">Exportar CSV</button>
+            <h2 class="admin-seccion__titulo">Socios y abonos</h2>
+            <div class="admin-seccion__acciones">
+              <button class="boton boton--secundario" type="button" id="csv-abonados">Exportar CSV</button>
+              <button class="boton boton--primario" type="button" id="abonados-nuevo">+ Nuevo vecino</button>
+            </div>
           </div>
 
-          <details class="admin-plegable">
+          <details class="admin-plegable" id="abonados-crear">
             <summary>Crear una cuenta nueva</summary>
             <form class="formulario" id="form-crear-usuario" novalidate>
               <div class="admin-filtros">
-                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Nombre y apellidos</span><input id="nuevo-nombre" type="text" required minlength="3"></label>
-                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Correo</span><input id="nuevo-email" type="email" required></label>
-                <label class="admin-filtros__campo"><span>Teléfono</span><input id="nuevo-telefono" type="tel"></label>
-                <label class="admin-filtros__campo"><span>Contraseña (mín. 8)</span><input id="nuevo-clave" type="text" required minlength="8"></label>
+                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Nombre y apellidos</span><input id="nuevo-nombre" type="text" required minlength="3" autocomplete="off" aria-describedby="error-nuevo-nombre"><p class="campo__error" id="error-nuevo-nombre" role="alert" hidden></p></label>
+                <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Correo</span><input id="nuevo-email" type="email" required autocomplete="off" aria-describedby="error-nuevo-email"><p class="campo__error" id="error-nuevo-email" role="alert" hidden></p></label>
+                <label class="admin-filtros__campo"><span>Teléfono</span><input id="nuevo-telefono" type="tel" autocomplete="off"></label>
+                <label class="admin-filtros__campo"><span>Contraseña temporal (opcional, mín. 10)</span><input id="nuevo-clave" type="text" minlength="8" autocomplete="off"></label>
                 <label class="admin-filtros__campo"><span>Rol</span>
                   <select id="nuevo-rol"><option value="vecino">Vecino/a</option><option value="monitor">Monitor/a</option><option value="admin">Administración</option></select>
                 </label>
               </div>
-              <button class="boton boton--primario" type="submit">Crear cuenta</button>
+              <p class="campo__ayuda">Sin contraseña, el vecino recibe un correo para elegir la suya. Al crear la cuenta se abre su ficha para darle el abono y la pulsera.</p>
+              <button class="boton boton--secundario" type="submit">Crear cuenta y abrir su ficha</button>
             </form>
           </details>
 
-          <div id="editor-usuario" hidden><!-- JS --></div>
-          <div id="admin-abonados"><!-- JS --></div>
+          <!-- Buscador y filtro ESTÁTICOS: no se destruyen al repintar la tabla (el foco se queda donde está) -->
+          <div class="admin-filtros" id="abonados-controles">
+            <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>Buscar (nombre, correo o UID de pulsera)</span>
+              <input type="search" id="buscar-abonado" placeholder="Nombre, correo o UID…" autocomplete="off" spellcheck="false"></label>
+            <label class="admin-filtros__campo"><span>Abono</span>
+              <select id="filtro-abono-api">
+                <option value="">Todos</option>
+                <option value="vigente">En vigor</option>
+                <option value="caducado">Caducado / de baja</option>
+                <option value="sin">Sin abono</option>
+              </select></label>
+          </div>
+
+          <div id="uid-pendiente" hidden><!-- JS: pulsera leída pendiente de asignar --></div>
+          <div id="editor-usuario" hidden><!-- JS: ficha del socio --></div>
+          <div id="admin-abonados" aria-live="polite" aria-busy="false"><!-- JS: tabla --></div>
         </section>
 
-        <section class="admin-seccion" id="seccion-instalaciones" aria-label="Bloqueos de pista" hidden>
-          <h2 class="etiqueta-grupo">Ventana de reserva</h2>
+        <section class="admin-seccion" id="seccion-instalaciones" aria-label="Pistas: bloqueos y ventana de reserva" hidden>
+          <div class="admin-bloque">
+          <h2 class="admin-seccion__titulo">Ventana de reserva</h2>
           <p class="paso__ayuda">Con cuánta antelación pueden reservar los vecinos. Ej.: «desde mañana, 2 días» → en lunes solo se abren martes y miércoles; en martes, miércoles y jueves.</p>
           <form id="form-ventana" novalidate>
             <div class="admin-filtros">
@@ -268,11 +333,13 @@
                 <span>Días abiertos</span>
                 <select id="ventana-dias"><!-- JS --></select>
               </label>
-              <button class="boton boton--primario" type="submit" style="align-self:flex-end">Guardar ventana</button>
+              <button class="boton boton--secundario" type="submit" style="align-self:flex-end">Guardar ventana</button>
             </div>
           </form>
+          </div>
 
-          <h2 class="etiqueta-grupo" style="margin-top:26px">Bloquear una pista</h2>
+          <div class="admin-bloque">
+          <h2 class="admin-seccion__titulo">Bloquear una pista</h2>
           <p class="paso__ayuda">Mantenimiento, competición u obra: la franja desaparece de la parrilla y quien ya tenía reserva recibe el aviso y la devolución de oficio, automáticamente.</p>
           <form class="formulario" id="form-bloqueo" novalidate>
             <div class="admin-filtros">
@@ -300,23 +367,31 @@
             </div>
             <button class="boton boton--primario" type="submit">Bloquear y avisar</button>
           </form>
-          <h2 class="etiqueta-grupo" style="margin-top:26px">Bloqueos activos</h2>
+          </div>
+
+          <div class="admin-bloque">
+          <h2 class="admin-seccion__titulo">Bloqueos activos</h2>
           <div id="admin-bloqueos"><!-- JS --></div>
+          </div>
         </section>
 
         <section class="admin-seccion" id="seccion-plid" aria-label="Ocupación y datos para el PLID" hidden>
           <div class="admin-seccion__cabecera">
             <div>
-              <h2 class="etiqueta-grupo">Ocupación del complejo · datos para el PLID</h2>
-              <p class="paso__ayuda" style="margin:0">Uso real por franja, instalación y día. La evidencia que pide el Plan Local de Instalaciones y Equipamientos Deportivos.</p>
+              <h2 class="admin-seccion__titulo">Ocupación del complejo · datos para el PLID</h2>
+              <p class="paso__ayuda">Uso real por franja, instalación y día. La evidencia que pide el Plan Local de Instalaciones y Equipamientos Deportivos.</p>
             </div>
             <button class="boton boton--secundario" type="button" id="plid-imprimir">Exportar informe (PDF)</button>
           </div>
           <div id="admin-plid"><!-- JS --></div>
         </section>
 
-        <section class="admin-seccion" id="seccion-torno" aria-label="Torno de acceso" hidden>
-          <h2 class="etiqueta-grupo">Torno de la pasarela de acceso</h2>
+        <section class="admin-seccion" id="seccion-torno" aria-label="Torno y pulseras" hidden>
+          <div class="admin-seccion__cabecera">
+            <h2 class="admin-seccion__titulo">Torno y pulseras</h2>
+            <!-- Estado del torno real (lo actualiza el JS en modo servidor; en local es simulado) -->
+            <div id="torno-api-estado" class="torno-estado" role="status" aria-live="polite"><span class="insignia insignia--neutra">Torno simulado</span></div>
+          </div>
           <div class="torno-panel">
             <div class="torno" id="torno" aria-live="polite">
               <span class="torno__luz" aria-hidden="true"></span>
@@ -326,55 +401,76 @@
                 <span class="torno__poste torno__poste--der"></span>
               </div>
               <p class="torno__estado" id="torno-estado">En espera<small>Acerca una pulsera o un QR</small></p>
+              <div class="torno__acciones" id="torno-acciones"><!-- JS: «Abrir ficha de …» tras una lectura --></div>
             </div>
-            <div class="torno-controles">
-              <div class="campo">
-                <label for="torno-abonado">Simular a un abonado</label>
-                <select id="torno-abonado"><!-- JS --></select>
-              </div>
-              <fieldset class="torno-sentido">
-                <legend class="campo__ayuda" style="margin-bottom:6px">Sentido del paso</legend>
-                <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="entrada" checked> Entrada</label>
-                <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="salida"> Salida</label>
-              </fieldset>
-              <div class="torno-controles__botones">
-                <button class="boton boton--primario" type="button" id="torno-leer-nfc">
-                  <svg width="18" height="18" aria-hidden="true"><use href="#i-nfc"/></svg> Leer pulsera NFC
-                </button>
-                <button class="boton boton--secundario" type="button" id="torno-leer-qr">
-                  <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear su QR
-                </button>
-              </div>
-              <div class="campo" style="margin-top:18px">
-                <label for="torno-manual">O pega el contenido de un QR / UID</label>
-                <input id="torno-manual" type="text" inputmode="numeric" placeholder="139987811297602810  ·  o un UID: 1399878112" aria-describedby="ayuda-torno-manual">
-                <p class="campo__ayuda" id="ayuda-torno-manual">Acepta el código numérico de un QR dinámico o directamente el UID de una tarjeta. Sirve para probar carnets caducados o manipulados.</p>
-              </div>
-              <button class="boton boton--secundario" type="button" id="torno-validar-manual">Validar QR pegado</button>
 
-              <div class="torno-camara">
-                <h3 class="etiqueta-grupo" style="margin-top:24px">Lector real con cámara</h3>
-                <p class="campo__ayuda" style="margin-bottom:12px">Enfoca el QR del carnet de un vecino (por ejemplo, desde su móvil) y el torno lo validará.</p>
-                <button class="boton boton--primario" type="button" id="torno-camara-boton">
-                  <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear con la cámara
-                </button>
-                <div id="torno-camara-zona" hidden>
-                  <video id="torno-video" playsinline muted aria-label="Imagen de la cámara buscando un código QR"></video>
-                  <select id="torno-camara-sel" aria-label="Elegir cámara" style="width:100%;margin:10px 0" hidden></select>
-                  <button class="boton boton--secundario" type="button" id="torno-camara-parar">Detener la cámara</button>
+            <div class="torno-lateral">
+              <!-- 1. Lectura: el lector USB teclea aquí y pulsa Enter -->
+              <div class="torno-controles torno-lectura">
+                <div class="campo-lector" id="campo-lector-torno">
+                  <label for="torno-manual">Pasa la pulsera por el lector USB o pega el código del QR</label>
+                  <div class="campo-lector__fila">
+                    <input id="torno-manual" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="p. ej. 1399878112" aria-describedby="ayuda-torno-manual">
+                    <button class="boton boton--primario" type="button" id="torno-validar-manual">Validar</button>
+                  </div>
+                  <p class="campo__ayuda" id="ayuda-torno-manual">El lector escribe el número y pulsa Enter: el resultado sale en el torno de la izquierda. Acepta un UID (decimal o hexadecimal) o el código numérico de un QR.</p>
+                </div>
+                <fieldset class="torno-sentido">
+                  <legend class="campo__ayuda">Sentido del paso</legend>
+                  <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="entrada" checked> Entrada</label>
+                  <label class="torno-sentido__opcion"><input type="radio" name="torno-direccion" value="salida"> Salida</label>
+                </fieldset>
+              </div>
+
+              <!-- 2. Alta de pulseras nuevas (solo con torno real): lecturas no reconocidas de los últimos minutos -->
+              <div class="torno-alta" id="torno-api-bloque" hidden>
+                <h3 class="etiqueta-grupo" style="margin-top:0">Alta de pulseras nuevas</h3>
+                <p class="paso__ayuda">Activa el modo alta, pasa la pulsera nueva por el torno y pulsa «Asignar a un socio…»: se abre Socios con la pulsera lista para guardarla en su ficha.</p>
+                <button class="boton boton--secundario" type="button" id="torno-api-alta-toggle" aria-pressed="false" aria-controls="torno-api-alta">Modo alta de pulseras</button>
+                <div id="torno-api-alta" hidden>
+                  <div id="torno-api-alta-lista"><!-- JS --></div>
                 </div>
               </div>
+
+              <!-- 3. Simulación (demo) y cámara -->
+              <details class="admin-plegable torno-extra">
+                <summary>Simulación (demo) y cámara</summary>
+                <div class="campo">
+                  <label for="torno-abonado">Simular a un abonado</label>
+                  <select id="torno-abonado"><!-- JS --></select>
+                </div>
+                <div class="torno-controles__botones">
+                  <button class="boton boton--secundario" type="button" id="torno-leer-nfc">
+                    <svg width="18" height="18" aria-hidden="true"><use href="#i-nfc"/></svg> Leer pulsera NFC
+                  </button>
+                  <button class="boton boton--secundario" type="button" id="torno-leer-qr">
+                    <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear su QR
+                  </button>
+                </div>
+                <div class="torno-camara">
+                  <h3 class="etiqueta-grupo" style="margin-top:20px">Lector real con cámara</h3>
+                  <p class="campo__ayuda" style="margin-bottom:12px">Enfoca el QR del carnet de un vecino (por ejemplo, desde su móvil) y el torno lo validará.</p>
+                  <button class="boton boton--secundario" type="button" id="torno-camara-boton">
+                    <svg width="18" height="18" aria-hidden="true"><use href="#i-qr"/></svg> Escanear con la cámara
+                  </button>
+                  <div id="torno-camara-zona" hidden>
+                    <video id="torno-video" playsinline muted aria-label="Imagen de la cámara buscando un código QR"></video>
+                    <select id="torno-camara-sel" aria-label="Elegir cámara" style="width:100%;margin:10px 0" hidden></select>
+                    <button class="boton boton--secundario" type="button" id="torno-camara-parar">Detener la cámara</button>
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
           <div class="admin-seccion__cabecera">
-            <h2 class="etiqueta-grupo">Registro de accesos</h2>
+            <h2 class="admin-seccion__titulo">Últimos accesos</h2>
             <button class="boton boton--secundario" type="button" id="csv-accesos">Exportar CSV</button>
           </div>
           <div id="admin-accesos"><!-- JS --></div>
         </section>
 
         <section class="admin-seccion" id="seccion-automatizaciones" aria-label="Registro de automatización" hidden>
-          <h2 class="etiqueta-grupo">Todo lo que el sistema ha hecho solo</h2>
+          <h2 class="admin-seccion__titulo">Todo lo que el sistema ha hecho solo</h2>
           <p class="paso__ayuda">Altas, renovaciones y caducidades de abonos, avisos de lista de espera y emisión de recibos: sin intervención del personal.</p>
           <ul class="lista-auto" id="admin-auto"><!-- JS --></ul>
         </section>
