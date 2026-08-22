@@ -1046,7 +1046,7 @@
           <section class="ficha__bloque" aria-labelledby="fb-4">
             <h4 id="fb-4"><span class="ficha__num">4</span> Gimnasio y clases</h4>
             ${htmlBloqueGimnasio(u.id, !!(a && a.vigente))}
-            ${clasesU.length ? `<ul class="ficha__lista" style="margin-top:12px">${clasesU.map((i) => `<li>${esc(clasePorId(i.claseId).nombre)} <span class="insignia ${i.estado === 'inscrito' ? 'insignia--plazas' : 'insignia--aviso'}">${i.estado === 'inscrito' ? 'inscrito' : 'en lista de espera'}</span></li>`).join('')}</ul>` : ''}
+            ${clasesU.length ? `<ul class="ficha__lista" style="margin-top:12px">${clasesU.map((i) => `<li><span>${esc(clasePorId(i.claseId).nombre)} <span class="insignia ${i.estado === 'inscrito' ? 'insignia--plazas' : 'insignia--aviso'}">${i.estado === 'inscrito' ? 'inscrito' : 'en lista de espera'}</span></span>${i.estado === 'inscrito' ? `<button class="boton--texto boton--compacto es-peligro" type="button" data-baja-clase="${esc(i.claseId)}" data-usuario="${esc(u.id)}">Dar de baja</button>` : ''}</li>`).join('')}</ul>` : ''}
           </section>
           <section class="ficha__bloque ficha__bloque--ancho" aria-labelledby="fb-5">
             <h4 id="fb-5"><span class="ficha__num">5</span> Actividad y accesos</h4>
@@ -1560,6 +1560,7 @@
       promocionarCola(clase);
       avisar(`${quien} dado de baja de ${clase.nombre}.`);
       pintarClases();
+      refrescarFichaAbierta();   // si se hizo desde la ficha del socio, que se vea al momento
       return;
     }
 
@@ -1810,7 +1811,7 @@
     $('#admin-app').hidden = false;
     $('#admin-salir').hidden = false;
     const hola = $('#admin-hola');
-    hola.textContent = `Sesión de ${u.nombre}`; hola.title = u.email; hola.hidden = false;
+    hola.textContent = `Sesión de ${u.nombre}`; hola.title = `${u.nombre} · ${u.email}`; hola.hidden = false;
     $('#form-buscar-global').hidden = false;
     if (MSDAuth.modoServidor) {
       $('#chip-torno').hidden = false;

@@ -2824,7 +2824,19 @@ main { padding-bottom: 90px; }
   border: 1.5px solid var(--borde-control); background: var(--blanco); font: inherit; color: var(--tinta);
 }
 .cabecera__buscar-icono { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--tinta-suave); pointer-events: none; }
-.chip-usuario--sesion { color: var(--tinta-suave); font-size: .88rem; }
+/* Chip «Sesión de …»: texto suelto (sin <span>), así que el recorte con «…» va en el propio chip */
+.chip-usuario--sesion {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 26px;           /* 26 + 8·2 de relleno + bordes ≈ 44 px, como los demás chips */
+  color: var(--tinta-suave);
+  font-size: .88rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
 .cabecera__estado { display: inline-flex; align-items: center; gap: 6px; font-size: .88rem; font-weight: 600; color: var(--tinta-suave); }
 @media (max-width: 900px) { .chip-usuario--sesion { display: none; } }
 @media (max-width: 640px) {
