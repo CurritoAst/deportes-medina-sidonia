@@ -15,6 +15,30 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+
+/* Configuración por FICHERO (alternativa al panel de Plesk): si existe
+   <MSD_DATA_DIR>/config.env (fuera del webroot; ej. /var/www/vhosts/<dominio>/msd-data/config.env)
+   se cargan sus líneas NOMBRE=valor en process.env SIN pisar las que ya vengan
+   del entorno. Sirve para poner MSD_REGISTRO_ABIERTO, MSD_SMTP_*, etc. con el
+   File Manager cuando el panel de variables da guerra. Líneas con # = comentario. */
+(function cargarConfigFichero() {
+  try {
+    const dir = process.env.MSD_DATA_DIR || path.join(__dirname, 'data');
+    const f = path.join(dir, 'config.env');
+    if (!fs.existsSync(f)) return;
+    let n = 0;
+    for (const linea of fs.readFileSync(f, 'utf8').split(/\r?\n/)) {
+      const l = linea.trim();
+      if (!l || l.startsWith('#')) continue;
+      const i = l.indexOf('=');
+      if (i <= 0) continue;
+      const k = l.slice(0, i).trim(), v = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+      if (!/^MSD_[A-Z0-9_]+$/.test(k)) continue;          // solo variables MSD_*
+      if (process.env[k] === undefined || process.env[k] === '') { process.env[k] = v; n++; }
+    }
+    if (n) console.log(`[config] ${n} variable(s) cargada(s) desde ${f}`);
+  } catch (e) { console.error('[config] no se pudo leer config.env:', e.message); }
+})();
 const { crearAlmacen, crearAlmacenFichero } = require('./almacen');
 const bd = require('./lib/bd');
 const { migrar } = require('./migrar');
