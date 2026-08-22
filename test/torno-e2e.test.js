@@ -185,6 +185,27 @@ if (!HAY_BD) {
     assert.equal(s.body.socios.find((x) => x.nfcUid === '1399878112').activo, false);
   });
 
+  test('pulsera leída con lector USB en HEX → se guarda en decimal y el torno la reconoce; la misma pulsera en otro orden de bytes → 409', async () => {
+    const ro = await bd.consulta("INSERT INTO usuarios (email, nombre, rol, clave_hash, email_verificado_en) VALUES ('usb@x.es','Usb Lector','vecino','x',NOW())");
+    const id = ro.insertId;
+    await pedir('POST', `/api/admin/usuarios/${id}/abono`, { meses: 1 }, CSRF, cookieAdmin);
+    // 0x53 0x70 0x71 0xE0 = 1399878112 ya está asignado a Carmen → 409 aunque venga en hex
+    const dup = await pedir('PUT', `/api/admin/usuarios/${id}/carnet`, { nfcUid: '53:70:71:E0' }, CSRF, cookieAdmin);
+    assert.equal(dup.status, 409); assert.equal(dup.body.codigo, 'UID_EN_USO');
+    // y también si llega con los bytes invertidos (E0 71 70 53) → misma pulsera física
+    const dup2 = await pedir('PUT', `/api/admin/usuarios/${id}/carnet`, { nfcUid: 'E0717053' }, CSRF, cookieAdmin);
+    assert.equal(dup2.status, 409);
+    // una pulsera nueva en hex → se guarda el decimal
+    const ok = await pedir('PUT', `/api/admin/usuarios/${id}/carnet`, { nfcUid: '0x04A2B3C4' }, CSRF, cookieAdmin);
+    assert.equal(ok.status, 200, ok.texto);
+    assert.equal(ok.body.usuario.abono.nfcUid, String(0x04A2B3C4));
+    const s = await pedir('GET', '/api/torno/socios', undefined, { Authorization: `Bearer ${TOKEN}` });
+    assert.ok(s.body.socios.some((x) => x.nfcUid === String(0x04A2B3C4)), 'el torno recibe el decimal');
+    // validar desde el panel con la lectura hex del lector USB → la reconoce
+    const val = await pedir('POST', '/api/admin/torno/validar', { lectura: '04A2B3C4', direccion: 'entrada' }, CSRF, cookieAdmin);
+    assert.equal(val.body.resultado, 'ok'); assert.equal(val.body.usuario.nombre, 'Usb Lector');
+  });
+
   test('listado admin con filtros, y crear usuario desde recepción con invitación', async () => {
     const l = await pedir('GET', '/api/admin/usuarios?abono=caducado', undefined, {}, cookieAdmin);
     assert.equal(l.status, 200); assert.ok(l.body.usuarios.some((u) => u.id === vecinoId));

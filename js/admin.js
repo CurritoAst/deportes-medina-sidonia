@@ -1600,7 +1600,13 @@
         <div class="admin-filtros">
           <label class="admin-filtros__campo"><span>Meses a dar de alta / añadir</span><input id="ea-meses" type="number" min="1" max="12" value="1"></label>
           <label class="admin-filtros__campo" style="align-self:end"><input id="ea-auto" type="checkbox"${a.autoRenovar ? ' checked' : ''}> Renovación automática</label>
-          <label class="admin-filtros__campo"><span>UID de la pulsera (decimal)</span><input id="ea-uid" type="text" inputmode="numeric" value="${esc(a.nfcUid || '')}" placeholder="pásala por el lector en «modo alta»"></label>
+          <label class="admin-filtros__campo admin-filtros__campo--ancho"><span>UID de la pulsera</span>
+            <span style="display:flex;gap:6px">
+              <input id="ea-uid" type="text" autocomplete="off" value="${esc(a.nfcUid || '')}" placeholder="acerca la pulsera al lector USB (o pégalo)" style="flex:1">
+              <button class="boton boton--secundario" type="button" id="ea-uid-leer" title="Pone el cursor aquí y espera la lectura del lector USB">Leer pulsera</button>
+            </span>
+            <small id="ea-uid-info" class="campo__ayuda" style="margin-top:4px">${a.nfcUid ? 'Guardado: ' + esc(a.nfcUid) + ' (hex ' + esc(MSDUid.aHex(a.nfcUid)) + ')' : 'Acepta decimal o hexadecimal: se guarda siempre el decimal que lee el torno.'}</small>
+          </label>
           <p class="campo__ayuda" style="align-self:end">${a.qrUid ? 'Carnet emitido · QR id ' + esc(a.qrUid) : 'Sin carnet todavía (se emite al dar de alta el abono).'}</p>
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">
@@ -1671,10 +1677,15 @@
       return;
     }
     if (d.apiPulsera) {
-      const uid = $('#ea-uid').value.trim();
-      if (!uid) { errorEditorApi('Escribe el UID de la pulsera (o pásala por el lector en modo alta).'); return; }
-      const r = await MSDApi.api('PUT', `/api/admin/usuarios/${d.apiPulsera}/carnet`, { nfcUid: uid, birthdate: $('#ea-nacimiento').value || undefined });
-      if (await trasAccionApi(r, 'Pulsera asignada.')) abrirEditorApi(d.apiPulsera);
+      const crudo = $('#ea-uid').value.trim();
+      if (!crudo) { errorEditorApi('Acerca la pulsera al lector USB con el cursor en el campo, o escribe el UID.'); return; }
+      const n = MSDUid.normalizar(crudo);
+      if (!n.ok) { errorEditorApi(n.error); return; }
+      const r = await MSDApi.api('PUT', `/api/admin/usuarios/${d.apiPulsera}/carnet`, { nfcUid: n.principal, birthdate: $('#ea-nacimiento').value || undefined });
+      if (await trasAccionApi(r, `Pulsera asignada (UID ${n.principal}${n.formato === 'hex' ? ', convertido de hexadecimal' : ''}).`)) {
+        abrirEditorApi(d.apiPulsera);
+        if (n.alternativas.length) avisar(`Si el torno no reconoce la pulsera, vuelve aquí y usa la alternativa ${n.alternativas[0]} (orden de bytes invertido).`);
+      }
       return;
     }
     if (d.apiLiberar) { if (await trasAccionApi(await MSDApi.post(`/api/admin/usuarios/${d.apiLiberar}/carnet/liberar`), 'Pulsera liberada.')) abrirEditorApi(d.apiLiberar); return; }
@@ -1695,6 +1706,29 @@
     }
   });
   document.addEventListener('change', (ev) => { if (MSDAuth.modoServidor && ev.target.id === 'filtro-abono-api') { filtroAbonoApi = ev.target.value; pintarAbonadosApi(); } });
+
+  /* ---------- Lector USB de pulseras (tipo teclado) ----------
+     Los lectores de escritorio "teclean" el UID y pulsan Enter. En el campo de
+     pulsera: el Enter NO envía el formulario; normaliza y muestra qué se va a
+     guardar (decimal para el torno) y la alternativa si era hexadecimal. En el
+     campo del torno del panel: el Enter valida directamente en el servidor. */
+  function mostrarInfoUid(crudo) {
+    const info = $('#ea-uid-info'); if (!info) return;
+    const n = MSDUid.normalizar(crudo);
+    if (!crudo) { info.textContent = 'Acepta decimal o hexadecimal: se guarda siempre el decimal que lee el torno.'; info.style.color = ''; return; }
+    if (!n.ok) { info.textContent = n.error; info.style.color = 'var(--error, #b00020)'; return; }
+    info.style.color = '';
+    info.textContent = `Se guardará: ${n.principal} (hex ${MSDUid.aHex(n.principal)})` + (n.formato === 'hex' ? ` · leído en hexadecimal${n.alternativas.length ? ' · alternativa si el torno no lo reconoce: ' + n.alternativas[0] : ''}` : '');
+  }
+  document.addEventListener('input', (ev) => { if (ev.target.id === 'ea-uid') mostrarInfoUid(ev.target.value.trim()); });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter') return;
+    if (ev.target.id === 'ea-uid') { ev.preventDefault(); mostrarInfoUid(ev.target.value.trim()); const b = $('[data-api-pulsera]'); if (b) b.focus(); }
+    if (ev.target.id === 'torno-manual') { ev.preventDefault(); const b = $('#torno-validar-manual'); if (b) b.click(); }
+  });
+  document.addEventListener('click', (ev) => {
+    if (ev.target.id === 'ea-uid-leer') { const c = $('#ea-uid'); if (c) { c.value = ''; c.focus(); mostrarInfoUid(''); avisar('Acerca la pulsera al lector USB: el número aparecerá en el campo.'); } }
+  });
   document.addEventListener('input', (ev) => {
     if (MSDAuth.modoServidor && ev.target.id === 'buscar-abonado') {
       busquedaAbonados = ev.target.value;
