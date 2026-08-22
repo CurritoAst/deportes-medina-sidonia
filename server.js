@@ -322,7 +322,17 @@ function atender(req, res, ruta) {
       esquema_error: esquemaError,
       claves: Object.keys(estado).length,
       node: process.version,
-      pid: process.pid
+      pid: process.pid,
+      // Configuración efectiva (solo banderas, nunca valores): ayuda a diagnosticar
+      // el despliegue sin buscar la consola de Node.
+      config: {
+        registro_abierto: process.env.MSD_REGISTRO_ABIERTO !== '0',
+        url_publica: !!process.env.MSD_URL_PUBLICA,
+        smtp: !!process.env.MSD_SMTP_HOST,
+        token_torno: tornoAuth.configurado(),
+        bootstrap_admin_pendiente: !!(process.env.MSD_BOOTSTRAP_ADMIN_EMAIL && process.env.MSD_BOOTSTRAP_ADMIN_CLAVE),
+        variables_msd: Object.keys(process.env).filter((k) => k.startsWith('MSD_')).sort().map((k) => (/PASS|CLAVE|TOKEN|PASSWORD/.test(k) ? k + '=***' : k))
+      }
     }));
     return;
   }
