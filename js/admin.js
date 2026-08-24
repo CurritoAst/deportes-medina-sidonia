@@ -2298,6 +2298,14 @@
       avisar(sembrarloYo
         ? `Hecho: ${d.usuarios} vecinos nuevos, ${d.abonos} abonos, ${d.reservas} reservas, ${d.gimnasio} en gimnasio, ${d.clases} en clases y ${d.impagos} impago de muestra.`
         : `Hecho: ${d.usuariosBorrados} vecinos de prueba borrados con todo lo suyo.`);
+      // La cuenta de vecino de prueba (con su contraseña recién generada) se queda a la vista
+      const acc = $('#pruebas-acceso');
+      if (acc) {
+        acc.hidden = !(sembrarloYo && d.acceso);
+        acc.innerHTML = sembrarloYo && d.acceso
+          ? `Para entrar como vecino de prueba en la web: <strong>${esc(d.acceso.email)}</strong> · contraseña <code class="mono">${esc(d.acceso.clave)}</code> (${esc(d.acceso.nombre)}; se genera una nueva cada vez que siembras).`
+          : '';
+      }
       MSDAuth.recargar();
       irASeccion(seccionActual);
     });
