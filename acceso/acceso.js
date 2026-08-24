@@ -185,7 +185,9 @@ async function sincronizar() {
       activo: s.activo === true,
       hasta: String(s.hasta || '1970-01-01'),
       birthdate: s.birthdate || '',
-      gym: s.gym || null
+      gym: s.gym || null,
+      // Recibo devuelto (domiciliación): dentro del plazo se AVISA; pasado `vence` (ms), se DENIEGA
+      impago: (s.impago && typeof s.impago.vence === 'number') ? { desde: s.impago.desde || 0, vence: s.impago.vence } : null
     }));
     // Salvaguarda: si la web devuelve 0 socios pero ya teníamos caché, la
     // conservamos (un vaciado temporal de la web no debe dejar a nadie fuera).
@@ -226,6 +228,12 @@ function validarSocio(u, metodo, direccion, raw) {
   if (u.hasta < hoy()) return Object.assign(base, { resultado: 'denegado', motivo: `Abono caducado el ${u.hasta}` });
   const edad = edadDe(u.birthdate);
   if (edad !== null && edad < cfg.EDAD_MINIMA) return Object.assign(base, { resultado: 'denegado', motivo: `Acceso a partir de ${cfg.EDAD_MINIMA} años` });
+  // Recibo devuelto por el banco: el servidor manda el momento `vence` (fin del
+  // plazo que fija el admin). Dentro del plazo se avisa; vencido, se deniega.
+  if (u.impago && typeof u.impago.vence === 'number') {
+    if (Date.now() > u.impago.vence) return Object.assign(base, { resultado: 'denegado', motivo: 'Recibo devuelto sin pagar' });
+    base.avisos.push('Recibo devuelto: pendiente de pago');
+  }
   if (u.gym && u.gym.franja) {
     const p = partesLocales(new Date());
     const ahoraMin = Number(p.hour) * 60 + Number(p.minute);

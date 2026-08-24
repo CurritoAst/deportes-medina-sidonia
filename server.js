@@ -427,6 +427,12 @@ async function arrancar() {
       try { await authRutas.bootstrapAdmin((m) => console.log(m)); } catch (e) { console.error('[bootstrap]', e.message); }
       correo.arrancarBucle();
       setInterval(() => sesion.purgar().catch(() => {}), 3600e3).unref();
+      // Renovación automática de abonos (domiciliación): al arrancar y cada 6 h
+      if (esquemaVersion >= 3) {
+        const recibos = require('./lib/recibos');
+        recibos.renovarVencidos((m) => console.log(m)).catch((e) => console.error('[recibos]', e.message));
+        setInterval(() => recibos.renovarVencidos((m) => console.log(m)).catch((e) => console.error('[recibos]', e.message)), 6 * 3600e3).unref();
+      }
       if (!process.env.MSD_URL_PUBLICA) console.warn('[config] Falta MSD_URL_PUBLICA: los enlaces de los correos saldrán con http://localhost:8137.');
       if (correo.modoDev()) console.warn('[correo] Sin MSD_SMTP_HOST: los correos NO se envían, se vuelcan a consola y a correos-salientes.log.');
     }

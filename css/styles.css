@@ -2951,6 +2951,21 @@ button.kpi:hover { border-color: var(--verde); }
 .gim-franja--casi { border-color: var(--aviso-borde); background: var(--aviso-tenue); }
 #admin-app .gim-persona { min-height: 44px; border-bottom: 1px dashed var(--linea); }
 
+/* ---------- Impagos: recibos devueltos (Inicio) y aviso en la ficha ---------- */
+.impagos { background: var(--error-tenue); border: 1.5px solid var(--error); border-radius: var(--radio-grande); padding: var(--e-4) var(--e-5); margin-bottom: var(--e-5); }
+.impagos__cabecera { display: flex; justify-content: space-between; align-items: center; gap: var(--e-2) var(--e-4); flex-wrap: wrap; }
+.impagos__titulo { color: var(--error); margin: 0; }
+.impagos__margen { display: inline-flex; align-items: center; gap: var(--e-2); font-size: .88rem; font-weight: 600; color: var(--tinta-suave); flex-wrap: wrap; }
+.impagos__margen input { width: 84px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 1.5px solid var(--borde-control); background: var(--blanco); font: inherit; text-align: center; }
+.impagos__lista { list-style: none; margin: var(--e-3) 0 0; padding: 0; display: grid; gap: var(--e-2); }
+.impago { display: flex; flex-wrap: wrap; align-items: center; gap: var(--e-2) var(--e-4); background: var(--blanco); border-radius: var(--radio); padding: var(--e-3) var(--e-4); }
+.impago--bloqueado { box-shadow: inset 5px 0 0 var(--error); }
+.impago__quien { flex: 1 1 200px; min-width: 0; display: grid; gap: 2px; }
+.impago__que { display: grid; gap: 2px; justify-items: start; }
+.impago__acc { margin-left: auto; display: flex; gap: var(--e-2); flex-wrap: wrap; align-items: center; }
+.ficha__impago { margin: var(--e-3) 0; padding: 10px 14px; border-radius: 10px; background: var(--error-tenue); color: var(--error); font-weight: 600; }
+.perfil-impago { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--error-tenue); color: var(--error); font-weight: 600; }
+
 /* ---------- C10. Avisos de error con cierre ---------- */
 .aviso--error { pointer-events: auto; }
 .aviso__cerrar { margin-left: auto; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: inherit; font-size: 1.4rem; cursor: pointer; border-radius: 10px; }

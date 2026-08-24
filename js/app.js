@@ -1336,8 +1336,10 @@
               <span class="pulsera__ondas" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="pulsera__texto">${esc(idAcceso || '—')}</span>
             </div>
+            ${(u.recibos || []).some((x) => x.estado === 'devuelto')
+              ? '<p class="perfil-impago" role="alert">El banco ha devuelto tu último recibo. Pásate por recepción para regularizarlo y que el acceso no se corte.</p>' : ''}
             <p class="paso__ayuda">Tu pulsera y tu QR abren el torno mientras el abono esté en vigor.
-              ${abono.autoRenovar ? 'Renovación automática mensual activada.' : 'La renovación se hace en recepción.'}
+              ${abono.autoRenovar ? 'Renovación automática mensual por domiciliación activada.' : 'La renovación se hace en recepción.'}
               Si pierdes la pulsera o el móvil, avisa en recepción para anularlos.</p>
             <div class="carnet__acciones">
               ${vigente ? '<button class="boton boton--secundario" type="button" data-imprimir-carnet>Imprimir carnet</button>' : ''}

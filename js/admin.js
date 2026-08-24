@@ -273,6 +273,7 @@
       kpi('kpi-llenas', `${llenas.length} / ${CLASES.length}`, 'Clases completas', llenas.length ? 'kpi--aviso' : '', 'clases'),
       kpi('kpi-reservas', proximas.length, 'Reservas próximas', '', 'reservas'),
       kpi('kpi-accesos', accesosHoy.length, 'Accesos hoy por el torno', '', 'torno'),
+      MSDAuth.modoServidor ? `<button class="kpi" type="button" id="kpi-impagos" data-foco="admin-impagos"><strong>…</strong><span>Recibos devueltos</span></button>` : '',
       kpi('kpi-ingresos', eur.format(ingresos), 'Ingresos estimados del mes', 'kpi--secundario', 'tarifas')
     ].join('');
 
@@ -282,11 +283,12 @@
 
   /* Con BD: el torno real, el aforo y los abonos vienen de la API (el resto sigue local hasta F4–F6) */
   async function refrescarInicioServidor() {
-    const [est, af, us, acc] = await Promise.all([
-      MSDApi.get('/api/admin/torno/estado'), MSDApi.get('/api/aforo'), MSDApi.get('/api/admin/usuarios'), MSDApi.get('/api/admin/accesos')
+    const [est, af, us, acc, imp] = await Promise.all([
+      MSDApi.get('/api/admin/torno/estado'), MSDApi.get('/api/aforo'), MSDApi.get('/api/admin/usuarios'), MSDApi.get('/api/admin/accesos'), MSDApi.get('/api/admin/impagos')
     ]);
     if (seccionActual !== 'panel') return;
     if (est.ok) pintarEstadoTorno(est.datos);
+    if (imp.ok) pintarImpagos(imp.datos);
     const d = $('#ahora-dentro');
     if (d && af.ok) d.innerHTML = `<small>Dentro ahora</small><strong>${Number(af.datos.dentro) || 0}${af.datos.aforoMax ? ' / ' + af.datos.aforoMax : ''}</strong><small>entradas − salidas de hoy</small>`;
     if (us.ok) {
@@ -466,7 +468,7 @@
           const a = u.abono; const id = esc(String(u.id));
           return `<tr class="tabla__fila" ${A.fila}="${id}">
             <td data-etiqueta="Socio/a"><button class="enlace-nombre" type="button" ${A.abrir}="${id}"><strong>${esc(u.nombre)}</strong></button>${u.rol && u.rol !== 'vecino' ? ` <span class="insignia insignia--neutra">${esc(u.rol)}</span>` : ''}${u.verificado === false ? ' <span class="insignia insignia--aviso">sin verificar</span>' : ''}<br><small class="tabla__sub">${esc(u.email)}${u.telefono ? ' · ' + esc(u.telefono) : ''}</small></td>
-            <td data-etiqueta="Abono">${estadoInsignia(a)}${a && a.vigente && a.autoRenovar ? '<br><small class="tabla__sub">renovación automática</small>' : ''}</td>
+            <td data-etiqueta="Abono">${estadoInsignia(a)}${a && a.impago ? ' <span class="insignia insignia--llena">recibo devuelto</span>' : ''}${a && a.vigente && a.autoRenovar ? '<br><small class="tabla__sub">domiciliación mensual</small>' : ''}</td>
             <td data-etiqueta="Pulsera">${a && a.nfcUid ? `${icono('i-nfc', 14)} <span class="mono" title="${esc(a.nfcUid)}">···${esc(String(a.nfcUid).slice(-4))}</span>` : '<span class="tabla__sub">sin pulsera</span>'}</td>
             <td data-etiqueta="Acciones" class="tabla__acciones">
               ${a && a.vigente
@@ -518,7 +520,7 @@
         <button class="boton--texto ficha__volver" type="button" data-cerrar-editor aria-label="Volver a la lista de socios">← Lista</button>
         <div class="ficha__quien">
           <h3 class="ficha__nombre" id="ficha-titulo" tabindex="-1">${esc(u.nombre)}</h3>
-          <div class="ficha__estado">${estadoInsignia(a)}${a && a.nfcUid ? ` <span class="ficha__uid">Pulsera <code>${esc(a.nfcUid)}</code></span>` : ' <span class="tabla__sub">sin pulsera</span>'}${u.verificado === false ? ' <span class="insignia insignia--aviso">correo sin verificar</span>' : ''}${u.rol && u.rol !== 'vecino' ? ` <span class="insignia insignia--neutra">${esc(u.rol)}</span>` : ''} <span class="tabla__sub">${esc(u.email)}${u.telefono ? ' · ' + esc(u.telefono) : ''}</span></div>
+          <div class="ficha__estado">${estadoInsignia(a)}${a && a.impago ? ' <span class="insignia insignia--llena">recibo devuelto</span>' : ''}${a && a.nfcUid ? ` <span class="ficha__uid">Pulsera <code>${esc(a.nfcUid)}</code></span>` : ' <span class="tabla__sub">sin pulsera</span>'}${u.verificado === false ? ' <span class="insignia insignia--aviso">correo sin verificar</span>' : ''}${u.rol && u.rol !== 'vecino' ? ` <span class="insignia insignia--neutra">${esc(u.rol)}</span>` : ''} <span class="tabla__sub">${esc(u.email)}${u.telefono ? ' · ' + esc(u.telefono) : ''}</span></div>
         </div>
         <p class="campo__error ficha__error" id="ea-error" role="alert" hidden></p>
       </header>`;
@@ -588,7 +590,8 @@
     void torno.offsetWidth; // reinicia la animación
     if (res.resultado === 'ok') {
       torno.classList.add('torno--ok');
-      estado.innerHTML = `${esc(sentido)} permitida<small>${esc(res.usuario.nombre)} · ${esc(res.motivo)}</small>`;
+      const avisos = res.avisos && res.avisos.length ? ` · ⚠ ${res.avisos.join(' · ')}` : '';
+      estado.innerHTML = `${esc(sentido)} permitida<small>${esc(res.usuario.nombre)} · ${esc(res.motivo + avisos)}</small>`;
     } else {
       torno.classList.add('torno--mal');
       estado.innerHTML = `${esc(sentido)} denegada<small>${esc(res.usuario ? res.usuario.nombre + ' · ' : '')}${esc(res.motivo)}</small>`;
@@ -1954,12 +1957,13 @@
           <section class="ficha__bloque" aria-labelledby="fb-2">
             <h4 id="fb-2"><span class="ficha__num">2</span> Abono</h4>
             <p class="ficha__resumen">${a.vigente
-              ? `En vigor hasta <strong>${esc(diaLegible(a.hasta))}</strong>${a.autoRenovar ? ' · renovación automática' : ''}`
-              : a.hasta ? `Caducado el ${esc(diaLegible(a.hasta))}: elige los meses y pulsa «Reactivar».` : 'Sin abono: elige los meses y pulsa «Dar de alta».'}</p>
+              ? `En vigor hasta <strong>${esc(diaLegible(a.hasta))}</strong>${a.autoRenovar ? ' · se renueva solo cada mes (recibo domiciliado)' : ''}`
+              : a.hasta ? `Caducado el ${esc(diaLegible(a.hasta))}: elige los meses y pulsa «Reactivar».` : 'Sin abono: el primer pago es con tarjeta en recepción; los meses siguientes van domiciliados si marcas la renovación automática.'}</p>
             <div class="admin-campos">
               <label><span>Meses a dar de alta / añadir</span><input id="ea-meses" type="number" min="1" max="12" value="1" inputmode="numeric"></label>
-              <label class="admin-campos__check"><input id="ea-auto" type="checkbox"${a.autoRenovar ? ' checked' : ''}> Renovación automática</label>
+              <label class="admin-campos__check"><input id="ea-auto" type="checkbox"${a.autoRenovar ? ' checked' : ''}> Renovación automática (domiciliación)</label>
             </div>
+            <div id="ficha-recibos"><p class="tabla__sub">Cargando recibos…</p></div>
             <div class="ficha__acciones">
               <button class="boton boton--primario" type="button" data-api-alta-editor="${u.id}">${a.vigente ? 'Añadir meses' : (a.hasta ? 'Reactivar el abono' : 'Dar de alta el abono')}</button>
               ${a.vigente ? `<button class="boton--texto es-peligro" type="button" data-api-baja="${u.id}">Dar de baja el abono</button>` : ''}
@@ -2009,11 +2013,61 @@
       const bp = $('[data-api-pulsera]'); if (bp) bp.classList.add('boton--destacado');
     }
     enfocarFicha(cont, op.foco);
-    // Últimos accesos por el torno de esta persona
+    // Últimos accesos por el torno y recibos de esta persona
     MSDApi.get('/api/admin/usuarios/' + u.id).then((r) => {
-      const c = $('#ficha-actividad'); if (!c || !$(`[data-editor-api="${u.id}"]`)) return;
-      c.innerHTML = r.ok ? htmlAccesosFicha((r.datos.accesos || []).slice(0, 5)) : `<p class="tabla__sub">${esc(r.error)}</p>`;
+      if (!$(`[data-editor-api="${u.id}"]`)) return;
+      const c = $('#ficha-actividad');
+      if (c) c.innerHTML = r.ok ? htmlAccesosFicha((r.datos.accesos || []).slice(0, 5)) : `<p class="tabla__sub">${esc(r.error)}</p>`;
+      const cr = $('#ficha-recibos');
+      if (cr) cr.innerHTML = r.ok ? htmlRecibosFicha((r.datos.usuario && r.datos.usuario.recibos) || []) : '';
     });
+  }
+
+  /* Recibos en la ficha (bloque Abono): estado de cada mensualidad y, si hay
+     un impago, el aviso con el plazo y el contacto a mano. */
+  function htmlRecibosFicha(lista) {
+    if (!lista.length) return '<p class="tabla__sub">Sin recibos todavía: se emiten con el alta (tarjeta) y con cada renovación automática (domiciliación).</p>';
+    const chip = { pendiente: 'insignia--aviso', pagado: 'insignia--plazas', devuelto: 'insignia--llena', anulado: 'insignia--neutra' };
+    const met = { tarjeta: 'tarjeta', mostrador: 'mostrador', domiciliacion: 'domiciliación' };
+    const dev = lista.find((x) => x.estado === 'devuelto');
+    const aviso = dev
+      ? `<p class="ficha__impago" role="alert">⚠ No ha pagado el recibo de ${esc(dev.periodo)}${dev.venceEn
+        ? (Date.now() > dev.venceEn
+          ? ': el plazo ha vencido y el torno ya NO le deja entrar.'
+          : `: le quedan ${Math.max(0, Math.ceil((dev.venceEn - Date.now()) / 86400e3))} día(s) de plazo.`)
+        : '.'} Contacta con la persona (teléfono y correo arriba) y, cuando pague, marca el recibo como pagado.</p>`
+      : '';
+    return aviso + `<ul class="ficha__lista" style="margin-top:8px">${lista.map((x) => `
+      <li><span>${esc(x.periodo)} · ${Number(x.importe).toFixed(2).replace('.', ',')} € <small class="tabla__sub">${met[x.metodo] || esc(x.metodo)}</small> <span class="insignia ${chip[x.estado] || 'insignia--neutra'}">${esc(x.estado)}</span></span>
+        <span>${x.estado !== 'pagado' && x.estado !== 'anulado' ? `<button class="boton--texto boton--compacto" type="button" data-recibo-estado="pagado" data-recibo="${esc(x.id)}">Marcar pagado</button>` : ''}${x.estado === 'pendiente' ? `<button class="boton--texto boton--compacto es-peligro" type="button" data-recibo-estado="devuelto" data-recibo="${esc(x.id)}">Devuelto</button>` : ''}</span></li>`).join('')}</ul>`;
+  }
+
+  /* Tarjeta roja del Inicio: los recibos devueltos, con el plazo general editable. */
+  function pintarImpagos(d) {
+    const c = $('#admin-impagos'); if (!c) return;
+    const lista = (d && d.impagos) || [];
+    const k = $('#kpi-impagos');
+    if (k) { k.querySelector('strong').textContent = String(lista.length); k.classList.toggle('kpi--mal', lista.length > 0); }
+    c.hidden = !lista.length;
+    if (!lista.length) { c.innerHTML = ''; return; }
+    c.innerHTML = `
+      <div class="impagos__cabecera">
+        <h2 class="admin-seccion__titulo impagos__titulo">Recibos devueltos por el banco: ${lista.length}</h2>
+        <label class="impagos__margen" for="impago-margen">Días de plazo antes de cortar el torno
+          <input type="number" id="impago-margen" min="0" max="90" value="${Number(d.margenDias) || 0}" inputmode="numeric">
+          <button class="boton boton--secundario boton--compacto" type="button" id="impago-margen-guardar">Guardar</button>
+        </label>
+      </div>
+      <ul class="impagos__lista">${lista.map((i) => `
+        <li class="impago${i.bloqueado ? ' impago--bloqueado' : ''}">
+          <div class="impago__quien"><strong>${esc(i.nombre)}</strong><small class="tabla__sub">${esc(i.telefono || 'sin teléfono')} · ${esc(i.email)}</small></div>
+          <div class="impago__que"><span class="insignia insignia--llena">Recibo de ${esc(i.periodo)} · ${Number(i.importe).toFixed(2).replace('.', ',')} €</span>
+            <small class="tabla__sub">${i.bloqueado ? 'Plazo vencido: el torno ya no le deja entrar' : 'Le quedan ' + Math.max(0, Math.ceil((i.venceEn - Date.now()) / 86400e3)) + ' día(s) de plazo'}</small></div>
+          <div class="impago__acc">
+            <button class="boton boton--secundario boton--compacto" type="button" data-abrir-ficha="${esc(i.usuarioId)}">Abrir ficha</button>
+            <button class="boton--texto boton--compacto" type="button" data-recibo-estado="pagado" data-recibo="${esc(i.reciboId)}">Marcar pagado</button>
+          </div>
+        </li>`).join('')}</ul>`;
   }
   const errorEditorApi = (m) => { const e = $('#ea-error'); if (e) { e.textContent = m; e.hidden = !m; if (m) e.scrollIntoView({ block: 'nearest' }); } };
   async function trasAccionApi(r, mensajeOk) {
@@ -2181,6 +2235,50 @@
     });
   }, true);   // captura: va antes que el handler legado
 
+  /* ---------- Recibos e impagos (modo servidor) ---------- */
+  // Marcar un recibo (desde la tarjeta de Inicio o desde la ficha del socio)
+  document.addEventListener('click', async (ev) => {
+    if (!MSDAuth.modoServidor) return;
+    const b = ev.target.closest('[data-recibo-estado]'); if (!b) return;
+    const estado = b.dataset.reciboEstado;
+    await conBloqueo(b, async () => {
+      if (estado === 'devuelto') {
+        const ok = await confirmar('¿Marcar el recibo como devuelto?', 'Empieza el plazo para pagar: el panel lo mostrará en rojo y, si el plazo vence, el torno no le dejará entrar.', 'Sí, es un impago');
+        if (!ok) return;
+      }
+      const r = await MSDApi.post(`/api/admin/recibos/${b.dataset.recibo}/estado`, { estado });
+      if (!r.ok) { avisar(r.error, 'error'); return; }
+      avisar(estado === 'pagado' ? 'Recibo marcado como pagado.' : `Recibo marcado como ${estado}.`);
+      // refresca lo que esté a la vista: la lista cacheada, la tarjeta de Inicio y la ficha
+      await pintarAbonadosApi();
+      if (seccionActual === 'panel') refrescarInicioServidor();
+      refrescarFichaAbierta();
+    });
+  });
+  // Plazo general del impago (días hasta cortar el torno)
+  document.addEventListener('click', async (ev) => {
+    const b = ev.target.closest('#impago-margen-guardar'); if (!b) return;
+    const dias = Math.max(0, Math.min(90, Number($('#impago-margen').value) || 0));
+    await conBloqueo(b, async () => {
+      const r = await MSDApi.patch('/api/admin/ajustes/impagos', { margenDias: dias });
+      if (!r.ok) { avisar(r.error, 'error'); return; }
+      avisar(`Plazo guardado: ${dias} día(s) desde el impago hasta que el torno corta la entrada.`);
+      refrescarInicioServidor();
+    });
+  });
+  // La casilla «Renovación automática» de la ficha se aplica al momento si el abono está en vigor
+  document.addEventListener('change', async (ev) => {
+    if (!MSDAuth.modoServidor || ev.target.id !== 'ea-auto') return;
+    const f = ev.target.closest('[data-editor-api]'); if (!f) return;
+    const u = porIdApi(f.dataset.editorApi);
+    if (!u || !u.abono || !u.abono.vigente) return;   // sin abono en vigor, se aplica al dar el alta
+    const marcado = ev.target.checked;
+    const r = await MSDApi.patch(`/api/admin/usuarios/${f.dataset.editorApi}/abono`, { autoRenovar: marcado });
+    if (!r.ok) { avisar(r.error, 'error'); ev.target.checked = !marcado; return; }
+    avisar(marcado ? 'Renovación automática activada: cada mes saldrá el recibo domiciliado.' : 'Renovación automática desactivada: el abono caducará si no renueva en recepción.');
+    await pintarAbonadosApi();
+  });
+
   /* ---------- Torno (API): validar en servidor + modo alta + estado ---------- */
   let modoAltaTimer = null;
   async function refrescarEstadoTorno() {
@@ -2217,7 +2315,7 @@
     const r = await MSDApi.post('/api/admin/torno/validar', { lectura, direccion: direccionTorno() });
     if (!r.ok) { avisar(r.error, 'error'); return; }
     const res = r.datos;
-    reaccionTorno({ resultado: res.resultado, motivo: res.motivo, direccion: res.direccion, usuario: res.usuario || null });
+    reaccionTorno({ resultado: res.resultado, motivo: res.motivo, direccion: res.direccion, usuario: res.usuario || null, avisos: res.avisos || [] });
     const c = $('#torno-manual'); if (c) { c.value = ''; c.focus(); }   // listo para la siguiente lectura
   }
   async function modoAltaTick() {
