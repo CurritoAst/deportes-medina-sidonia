@@ -475,6 +475,17 @@
         <section class="admin-seccion" id="seccion-automatizaciones" aria-label="Registro de automatización" hidden>
           <h2 class="admin-seccion__titulo">Todo lo que el sistema ha hecho solo</h2>
           <p class="paso__ayuda">Altas, renovaciones y caducidades de abonos, avisos de lista de espera y emisión de recibos: sin intervención del personal.</p>
+
+          <!-- Solo para la FASE DE PRUEBAS: rellena la web con vecinos ficticios y los borra después -->
+          <details class="admin-plegable" id="pruebas-datos">
+            <summary>Datos de prueba (mientras probáis la web)</summary>
+            <p class="paso__ayuda">«Sembrar» crea 14 vecinos ficticios (correo <strong>@prueba.local</strong>) con abonos, dos pulseras de mentira, horas de gimnasio, reservas de pista para mañana y pasado, inscripciones a clases (Ciclo indoor queda llena con cola) y un recibo devuelto de muestra. «Borrar» los quita todos, sin tocar los datos reales.</p>
+            <div class="admin-seccion__acciones" style="margin-bottom:14px">
+              <button class="boton boton--secundario" type="button" id="pruebas-sembrar">Sembrar datos de prueba</button>
+              <button class="boton boton--secundario es-peligro" type="button" id="pruebas-limpiar">Borrar datos de prueba</button>
+            </div>
+          </details>
+
           <ul class="lista-auto" id="admin-auto"><!-- JS --></ul>
         </section>
       </div>

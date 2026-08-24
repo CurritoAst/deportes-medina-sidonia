@@ -76,6 +76,8 @@ function difundirAcceso(ev) {
 }
 tornoRutas.montar(router, { difundirAcceso });
 abonosRutas.montar(router, { difundirAcceso });
+// Datos de prueba (fase de pruebas): sembrar/limpiar vecinos ficticios desde el panel
+require('./lib/pruebas').montar(router, { obtenerEstado: () => estado, persistir, difundir });
 
 /* En local usa 8137; en un host (Render, Railway, Fly…) se toma el puerto que
    inyecta la plataforma por la variable PORT. */

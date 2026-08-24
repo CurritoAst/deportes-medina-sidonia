@@ -2279,6 +2279,30 @@
     await pintarAbonadosApi();
   });
 
+  /* ---------- Datos de prueba (fase de pruebas): sembrar y borrar ---------- */
+  document.addEventListener('click', async (ev) => {
+    const b = ev.target.closest('#pruebas-sembrar, #pruebas-limpiar'); if (!b) return;
+    if (!MSDAuth.modoServidor) { avisar('Los datos de prueba necesitan el modo servidor (base de datos).', 'error'); return; }
+    const sembrarloYo = b.id === 'pruebas-sembrar';
+    await conBloqueo(b, async () => {
+      const ok = await confirmar(
+        sembrarloYo ? '¿Sembrar los datos de prueba?' : '¿Borrar los datos de prueba?',
+        sembrarloYo
+          ? 'Se crearán 14 vecinos @prueba.local con abonos, gimnasio, reservas, clases y un impago de muestra. Los verá todo el que entre en la web hasta que los borres.'
+          : 'Se eliminarán todos los vecinos @prueba.local con sus abonos, recibos, reservas, horas de gimnasio y clases. Los datos reales no se tocan.',
+        sembrarloYo ? 'Sí, sembrar' : 'Sí, borrar');
+      if (!ok) return;
+      const r = await MSDApi.post(sembrarloYo ? '/api/admin/pruebas/sembrar' : '/api/admin/pruebas/limpiar');
+      if (!r.ok) { avisar(r.error, 'error'); return; }
+      const d = r.datos;
+      avisar(sembrarloYo
+        ? `Hecho: ${d.usuarios} vecinos nuevos, ${d.abonos} abonos, ${d.reservas} reservas, ${d.gimnasio} en gimnasio, ${d.clases} en clases y ${d.impagos} impago de muestra.`
+        : `Hecho: ${d.usuariosBorrados} vecinos de prueba borrados con todo lo suyo.`);
+      MSDAuth.recargar();
+      irASeccion(seccionActual);
+    });
+  });
+
   /* ---------- Torno (API): validar en servidor + modo alta + estado ---------- */
   let modoAltaTimer = null;
   async function refrescarEstadoTorno() {
