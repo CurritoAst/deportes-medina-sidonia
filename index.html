@@ -180,44 +180,56 @@
         <div class="hero__visual" aria-hidden="true">
           <div class="arco">
             <svg class="arco__escena" viewBox="0 0 400 460" preserveAspectRatio="xMidYMax slice" role="presentation">
-              <defs>
-                <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stop-color="#EAF1F9"/><stop offset="1" stop-color="#D9E5F2"/>
-                </linearGradient>
-              </defs>
-              <rect width="400" height="460" fill="url(#cielo)"/>
-              <circle cx="200" cy="150" r="58" fill="#E0A32E"/>
-              <circle cx="200" cy="150" r="78" fill="none" stroke="#E0A32E" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 10"/>
-              <!-- colinas -->
-              <path d="M0 330 Q100 290 200 322 T400 315 V460 H0 Z" fill="#DCE3EC"/>
-              <path d="M0 360 Q120 322 240 352 T400 348 V460 H0 Z" fill="#C3CFDE"/>
-              <!-- caserío blanco -->
-              <g fill="#FFFFFF">
-                <rect x="52" y="292" width="52" height="70" rx="2"/>
-                <rect x="112" y="272" width="44" height="90" rx="2"/>
-                <rect x="164" y="296" width="58" height="66" rx="2"/>
-                <rect x="230" y="266" width="40" height="96" rx="2"/>
-                <rect x="278" y="290" width="62" height="72" rx="2"/>
-                <path d="M112 272h44l-22-16z"/>
-                <path d="M230 266h40l-20-15z"/>
-              </g>
-              <g fill="#1E3A5F" opacity=".85">
-                <rect x="70" y="312" width="12" height="20" rx="6"/>
-                <rect x="128" y="292" width="12" height="20" rx="6"/>
-                <rect x="186" y="314" width="12" height="20" rx="6"/>
-                <rect x="244" y="286" width="12" height="20" rx="6"/>
-                <rect x="298" y="310" width="12" height="20" rx="6"/>
-              </g>
-              <!-- campanario -->
-              <g>
-                <rect x="342" y="238" width="34" height="124" rx="2" fill="#FFFFFF"/>
-                <path d="M342 238h34l-17-22z" fill="#C75B3E"/>
-                <rect x="352" y="252" width="14" height="22" rx="7" fill="#1E3A5F" opacity=".85"/>
-              </g>
-              <!-- suelo albero -->
-              <path d="M0 402 Q200 380 400 402 V460 H0 Z" fill="#C75B3E" opacity=".9"/>
-              <path d="M0 420 Q200 400 400 420 V460 H0 Z" fill="#A64A2E"/>
-            </svg>
+  <style>
+    @media (prefers-reduced-motion: no-preference){
+      .v1-bola{animation:v1-botar 4s ease-in-out infinite alternate}
+      @keyframes v1-botar{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+    }
+  </style>
+  <defs>
+    <linearGradient id="v1-cielo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EAF1F9"/>
+      <stop offset="1" stop-color="#D9E5F2"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="400" height="460" fill="url(#v1-cielo)"/>
+
+  <path d="M96,118 q7,-7 14,0 q7,-7 14,0 M148,96 q6,-6 12,0 q6,-6 12,0" fill="none" stroke="#1E3A5F" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+  <circle cx="300" cy="92" r="48" fill="none" stroke="#E0A32E" stroke-width="3" stroke-dasharray="2 10.57" stroke-linecap="round"/>
+  <circle cx="300" cy="92" r="32" fill="#E0A32E"/>
+
+  <path d="M0,252 Q110,196 230,224 Q330,244 400,208 L400,300 L0,300 Z" fill="#C3CFDE"/>
+
+  <path d="M108,226 h34 v32 h-34 z M146,212 h40 v46 h-40 z M186,171 h28 v87 h-28 z M218,218 h40 v40 h-40 z M262,232 h30 v26 h-30 z M86,242 h22 v16 h-22 z M292,240 h26 v18 h-26 z" fill="#FFFFFF"/>
+  <path d="M104,219 h42 v7 h-42 z M214,211 h48 v7 h-48 z M142,212 L190,212 L166,197 z M258,234 L296,234 L277,220 z M182,171 L218,171 L200,153 z" fill="#C75B3E"/>
+  <path d="M119,234 h7 v9 h-7 z M153,222 h7 v9 h-7 z M166,222 h7 v9 h-7 z M160,242 h10 v16 h-10 z M193,196 v-8 q0,-8 7,-8 q7,0 7,8 v8 z M228,228 h7 v9 h-7 z M243,228 h7 v9 h-7 z M272,239 h7 v9 h-7 z" fill="#1E3A5F"/>
+  <circle cx="200" cy="150" r="3.5" fill="#E0A32E"/>
+  <ellipse cx="97" cy="238" rx="6" ry="16" fill="#1C6E3F"/>
+
+  <path d="M0,286 Q90,252 190,258 Q290,264 400,250 L400,330 L0,330 Z" fill="#DCE3EC"/>
+
+  <rect x="0" y="296" width="400" height="164" fill="#A64A2E"/>
+  <polygon points="70,296 330,296 430,460 -30,460" fill="#C75B3E"/>
+  <path d="M10,460 L92,306 L308,306 L390,460" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="57" y1="372" x2="343" y2="372" stroke="#FFFFFF" stroke-width="3"/>
+  <line x1="200" y1="374" x2="200" y2="458" stroke="#FFFFFF" stroke-width="3"/>
+  <ellipse cx="48" cy="297" rx="17" ry="7" fill="#1C6E3F"/>
+  <ellipse cx="352" cy="297" rx="17" ry="7" fill="#1C6E3F"/>
+
+  <rect x="84" y="284" width="232" height="24" fill="#FFFFFF" fill-opacity="0.3"/>
+  <path d="M106,285 v21 M128,285 v21 M150,285 v21 M172,285 v21 M194,285 v21 M216,285 v21 M238,285 v21 M260,285 v21 M282,285 v21 M86,291 h228 M86,299 h228" fill="none" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1"/>
+  <rect x="80" y="278" width="240" height="6" rx="3" fill="#FFFFFF"/>
+  <rect x="197" y="284" width="6" height="24" fill="#FFFFFF"/>
+  <path d="M84,281 V308 M316,281 V308" fill="none" stroke="#1E3A5F" stroke-width="5" stroke-linecap="round"/>
+
+  <path d="M272,374 Q310,266 314,248" fill="none" stroke="#E0A32E" stroke-width="2.5" stroke-dasharray="0.5 8.5" stroke-linecap="round"/>
+  <g class="v1-bola">
+    <circle cx="306" cy="242" r="8" fill="#E0A32E"/>
+    <circle cx="303" cy="239" r="2.5" fill="#FFFFFF" opacity="0.8"/>
+  </g>
+</svg>
           </div>
           <div class="hero__tarjeta">
             <svg width="22" height="22" class="hero__tarjeta-icono"><use href="#i-check"/></svg>
